@@ -71,7 +71,9 @@ D.lessons['l07'] = {
 ```
 media/narration.json  ← node scripts/extract-narration.mjs (тексты уроков + CLI-примеры)
         │
-        ├── media/audio/<id>-p1.mp3 … (озвучка)
+        ├── media/narration-speech.json ← scripts/narration-voice.py (сценарий для синтеза речи)
+        │        │
+        │        └── media/audio/<id>-p1.mp3 … (озвучка)
         │
         ├── scripts/routeros_ui.py  → интерфейс RouterOS: дерево Winbox, таблицы, терминал
         └── scripts/make-videos.py → экраны Pillow → ffmpeg → web/assets/media/video/<id>.mp4
@@ -82,6 +84,12 @@ media/narration.json  ← node scripts/extract-narration.mjs (тексты ур�
 выводом → итог с командами урока. Разбор пути команды в раздел Winbox и
 таблицы разделов живут в `scripts/routeros_ui.py`.
 Кодек: H.264 baseline, yuv420p, AAC 96 кбит/с, `+faststart` — играется в WebView на Android 7+.
+
+`scripts/narration-voice.py` готовит текст для синтеза: переводит технические
+аббревиатуры в произносимый вид, заменяет длинные адреса и маски короткими
+естественными фразами («адрес роутера», «маска двадцать четыре») и режет текст
+на части до 1400 символов. Результат — `media/narration-speech.json`; сам текст
+урока в приложении не меняется.
 
 ## CI/CD
 
