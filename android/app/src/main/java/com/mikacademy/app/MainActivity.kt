@@ -42,7 +42,7 @@ class MainActivity : AppCompatActivity() {
         // файлы из assets уходили бы в сеть, где домена appassets.androidplatform.net
         // не существует, и не воспроизводились.
         try {
-            ServiceWorkerController.getInstance().setServiceWorkerClient(
+            ServiceWorkerController.getInstance()?.setServiceWorkerClient(
                 object : ServiceWorkerClientCompat() {
                     override fun shouldInterceptRequest(
                         request: WebResourceRequest

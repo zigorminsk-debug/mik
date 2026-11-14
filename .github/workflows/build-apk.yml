@@ -325,8 +325,22 @@ jobs:
           {
             echo "### ❌ Сборка APK упала"
             echo ""
+            echo "**Начало лога сборки**"
+            echo ""
             echo '```'
-            tail -80 "$LOG" 2>/dev/null || echo "лог недоступен"
+            head -40 "$LOG" 2>/dev/null || echo "лог недоступен"
+            echo '```'
+            echo ""
+            echo "**Ключевые строки ошибки**"
+            echo ""
+            echo '```'
+            grep -nE "What went wrong|Caused by:|error:|FAILURE|Execution failed|^e: |^\* |Could not|A problem occurred" "$LOG" 2>/dev/null | head -40 || echo "не найдено"
+            echo '```'
+            echo ""
+            echo "**Конец лога**"
+            echo ""
+            echo '```'
+            tail -30 "$LOG" 2>/dev/null || echo "лог недоступен"
             echo '```'
           } > /tmp/report.md
           if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then

@@ -57,15 +57,23 @@ android {
         // Отладочный ключ лежит в репозитории: он ничего не защищает, но постоянный,
         // поэтому отладочные сборки устанавливаются поверх предыдущих.
         create("debugStable") {
-            val props = java.util.Properties()
+            // читаем mik-debug.properties вручную: в Kotlin DSL имя `java`
+            // перехватывается расширением java-плагина
+            val props = mutableMapOf<String, String>()
             val propsFile = rootProject.file("keystore/mik-debug.properties")
             if (propsFile.exists()) {
-                propsFile.inputStream().use { props.load(it) }
+                propsFile.readLines().forEach { line ->
+                    val t = line.trim()
+                    if (t.isNotEmpty() && !t.startsWith("#") && t.contains("=")) {
+                        val i = t.indexOf("=")
+                        props[t.substring(0, i).trim()] = t.substring(i + 1).trim()
+                    }
+                }
             }
             storeFile = rootProject.file("keystore/mik-debug.p12")
-            storePassword = props.getProperty("store_password", "mikdebug")
-            keyAlias = props.getProperty("key_alias", "mikdebug")
-            keyPassword = props.getProperty("key_password", props.getProperty("store_password", "mikdebug"))
+            storePassword = props["store_password"] ?: "mikdebug"
+            keyAlias = props["key_alias"] ?: "mikdebug"
+            keyPassword = props["key_password"] ?: props["store_password"] ?: "mikdebug"
             storeType = "pkcs12"
         }
     }
