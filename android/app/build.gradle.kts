@@ -29,12 +29,12 @@ android {
     val syncWebAssets by tasks.registering(Copy::class) {
         description = "Копирует веб-приложение из /web в assets приложения"
         from(rootProject.layout.projectDirectory.dir("../web"))
-        into(layout.buildDirectory.dir("generated/webAssets/www"))
+        into(project.layout.buildDirectory.dir("generated/webAssets/www"))
         exclude("**/.DS_Store")
     }
 
     sourceSets.getByName("main") {
-        assets.srcDir(layout.buildDirectory.dir("generated/webAssets"))
+        assets.srcDir(project.layout.buildDirectory.dir("generated/webAssets"))
     }
 
     tasks.named("preBuild") { dependsOn(syncWebAssets) }
@@ -79,15 +79,6 @@ android {
 
     packaging {
         resources.excludes += setOf("META-INF/{AL2.0,LGPL2.1}", "META-INF/DEPENDENCIES")
-    }
-}
-
-// Имя APK: mik-academy-<версия>-<тип>.apk
-androidComponents {
-    onVariants { variant ->
-        variant.outputs.forEach { output ->
-            output.outputFileName.set("mik-academy-${appVersionName}-${variant.buildType.name}.apk")
-        }
     }
 }
 
