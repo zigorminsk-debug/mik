@@ -16,13 +16,20 @@
   /* ---------------- состояние ---------------- */
   const KEY = 'mik.state.v1';
   const defState = { checks: {}, quiz: {}, theme: 'dark', bigtext: 0, last: null };
+
+  /* localStorage может быть недоступен (file://, приватный режим) — работаем без него */
+  const LS = {
+    get(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { window.localStorage.setItem(k, v); } catch (e) { } }
+  };
+
   let state;
-  try { state = Object.assign({}, defState, JSON.parse(localStorage.getItem(KEY) || '{}')); }
+  try { state = Object.assign({}, defState, JSON.parse(LS.get(KEY) || '{}')); }
   catch (e) { state = Object.assign({}, defState); }
   state.checks = state.checks || {};
   state.quiz = state.quiz || {};
 
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { } }
+  function save() { LS.set(KEY, JSON.stringify(state)); }
   window.MIK = { state: state, save: save, DATA: DATA, ORDER: ORDER };
 
   /* ---------------- тема ---------------- */
@@ -401,11 +408,29 @@
   }
 
   /* ---------------- поиск ---------------- */
+  function lessonText(l) {
+    const parts = [l.title || '', l.lead || '', (l.tags || []).join(' '), (l.transcript || []).join(' '), l.summary || ''];
+    (l.blocks || []).forEach((b) => {
+      if (typeof b.x === 'string') parts.push(b.x);
+      else if (Array.isArray(b.x)) parts.push(b.x.join(' '));
+      if (b.rows) parts.push(b.rows.map((r) => r.join(' ')).join(' '));
+      if (b.head) parts.push(b.head.join(' '));
+      if (b.ttl) parts.push(b.ttl);
+    });
+    (l.steps || []).forEach((s) => parts.push(s.title || '', s.text || '', s.cmd || '', s.note || ''));
+    (l.pitfalls || []).forEach((p) => parts.push(p.t || '', p.d || ''));
+    (l.quiz || []).forEach((q) => {
+      parts.push(q.q || '', q.why || '');
+      (q.o || []).forEach((o) => parts.push(o));
+    });
+    return parts.join(' ').toLowerCase();
+  }
+
   function buildSearchIndex() {
     const idx = [];
     ORDER.forEach((id) => {
       const l = LESSONS[id];
-      idx.push({ kind: 'lesson', title: l.title, sub: l.lead, id: id, hay: (l.title + ' ' + l.lead + ' ' + (l.tags || []).join(' ') + ' ' + (l.blocks || []).map((b) => b.x || (b.x || []).join ? '' : '').join(' ')).toLowerCase() });
+      idx.push({ kind: 'lesson', title: l.title, sub: l.lead, id: id, hay: lessonText(l) });
       (l.cheat || []).forEach((c) => idx.push({ kind: 'cmd', title: c.c, sub: c.d, id: id, hay: (c.c + ' ' + c.d).toLowerCase() }));
     });
     return idx;

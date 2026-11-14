@@ -6,11 +6,12 @@ plugins {
 val appVersionCode: Int = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
 val appVersionName: String = (project.findProperty("versionName") as String?) ?: "1.0.0"
 
-// Путь к keystore берётся из переменных окружения (их задаёт GitHub Actions)
-val keystorePath: String? = System.getenv("MIK_KEYSTORE_PATH")
-val storePassword: String? = System.getenv("MIK_STORE_PASSWORD")
-val keyAlias: String? = System.getenv("MIK_KEY_ALIAS")
-val keyPassword: String? = System.getenv("MIK_KEY_PASSWORD")
+// Параметры подписи приходят из переменных окружения (их задаёт GitHub Actions).
+// Имена с суффиксом Env, чтобы не перекрывать свойства SigningConfig.
+val keystorePathEnv: String? = System.getenv("MIK_KEYSTORE_PATH")
+val storePasswordEnv: String? = System.getenv("MIK_STORE_PASSWORD")
+val keyAliasEnv: String? = System.getenv("MIK_KEY_ALIAS")
+val keyPasswordEnv: String? = System.getenv("MIK_KEY_PASSWORD")
 
 android {
     namespace = "com.mikacademy.app"
@@ -22,7 +23,6 @@ android {
         targetSdk = 34
         versionCode = appVersionCode
         versionName = appVersionName
-        resourceConfigurations += listOf("ru", "en")
     }
 
     // Веб-приложение копируется в assets на этапе сборки — исходники хранятся один раз, в /web
@@ -40,12 +40,12 @@ android {
     tasks.named("preBuild") { dependsOn(syncWebAssets) }
 
     signingConfigs {
-        if (keystorePath != null && storePassword != null && keyAlias != null) {
+        if (keystorePathEnv != null && storePasswordEnv != null && keyAliasEnv != null) {
             create("release") {
-                storeFile = file(keystorePath)
-                storePassword = storePassword
-                keyAlias = keyAlias
-                keyPassword = keyPassword ?: storePassword
+                storeFile = rootProject.file(keystorePathEnv)
+                storePassword = storePasswordEnv
+                keyAlias = keyAliasEnv
+                keyPassword = keyPasswordEnv ?: storePasswordEnv
                 storeType = "pkcs12"
                 enableV1Signing = false
                 enableV2Signing = true
@@ -80,11 +80,13 @@ android {
     packaging {
         resources.excludes += setOf("META-INF/{AL2.0,LGPL2.1}", "META-INF/DEPENDENCIES")
     }
+}
 
-    applicationVariants.all {
-        outputs.all {
-            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            output.outputFileName = "mik-academy-${appVersionName}-${variant.buildType.name}.apk"
+// Имя APK: mik-academy-<версия>-<тип>.apk
+androidComponents {
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
+            output.outputFileName.set("mik-academy-${appVersionName}-${variant.buildType.name}.apk")
         }
     }
 }
