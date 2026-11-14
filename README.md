@@ -53,15 +53,23 @@ python3 -m http.server 8080 --directory web
 
 APK собирается в GitHub Actions: **[Actions → Сборка APK → Run workflow](https://github.com/zigorminsk-debug/mik/actions/workflows/build-apk.yml)**.
 
-**Скачать готовый APK** (обычный файл, без архива):
+**Скачать готовый APK** — обычный файл, без архива (страница релиза со всеми файлами):
 
 ```
-https://github.com/zigorminsk-debug/mik/releases/latest/download/mik-academy.apk
+https://github.com/zigorminsk-debug/mik/releases/latest
 ```
 
-Сборка публикует подписанный APK в скользящем релизе `apk-latest`; по тегу `v1.0.0`
-дополнительно создаётся версионный релиз. Артефакты сборки: `mik-academy-apk` (подписанный)
-и `mik-academy-apk-debug` (отладочный, для тестов на устройстве).
+Прямые ссылки на файлы:
+
+| Файл | Ссылка | Что это |
+|---|---|---|
+| `mik-academy.apk` | `.../releases/latest/download/mik-academy.apk` | подписанный постоянным ключом релизный APK |
+| `mik-academy-debug.apk` | `.../releases/latest/download/mik-academy-debug.apk` | отладочная сборка (отдельный пакет `com.mikacademy.app.debug`) |
+
+Сборка публикует файлы в скользящем релизе `apk-latest`; по тегу `v1.0.0` дополнительно
+создаётся версионный релиз. Артефакты сборки в интерфейсе Actions: `mik-academy-apk`
+(подписанный) и `mik-academy-apk-debug` (отладочный) — они всегда в формате zip,
+для установки на телефон пользуйтесь файлами из релиза.
 
 Ключ подписи лежит в **секретах GitHub** (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`,
 `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`). Добавить их один раз:
