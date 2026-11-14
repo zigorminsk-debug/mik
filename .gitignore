@@ -36,3 +36,6 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# образцы озвучки для прослушивания (не публикуются)
+media/samples/
