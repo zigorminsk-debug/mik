@@ -25,6 +25,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   build:
@@ -136,6 +137,17 @@ jobs:
             echo '```' >> "$GITHUB_STEP_SUMMARY"
             tail -80 /tmp/gradle-debug.log >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
+            if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+              {
+                echo "### ❌ Сборка APK упала"
+                echo ""
+                echo '```'
+                tail -70 /tmp/gradle-debug.log
+                echo '```'
+              } > /tmp/report.md
+              gh api --method POST "/repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+                -f body="$(cat /tmp/report.md)" || true
+            fi
             exit 1
           }
 
@@ -154,6 +166,17 @@ jobs:
             echo '```' >> "$GITHUB_STEP_SUMMARY"
             tail -80 /tmp/gradle-release.log >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
+            if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+              {
+                echo "### ❌ Сборка release APK упала"
+                echo ""
+                echo '```'
+                tail -70 /tmp/gradle-release.log
+                echo '```'
+              } > /tmp/report.md
+              gh api --method POST "/repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+                -f body="$(cat /tmp/report.md)" || true
+            fi
             exit 1
           }
 
@@ -182,27 +205,6 @@ jobs:
           name: mik-academy-apk
           path: android/artifacts/*.apk
           if-no-files-found: warn
-
-      - name: Отчёт об ошибке в PR
-        if: failure() && github.event_name == 'pull_request'
-        permissions:
-          pull-requests: write
-          contents: read
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            let log = '';
-            for (const f of ['/tmp/gradle-release.log', '/tmp/gradle-debug.log']) {
-              if (fs.existsSync(f)) log = fs.readFileSync(f, 'utf8');
-            }
-            const body = ['### ❌ Сборка APK упала', '```', (log || 'лог недоступен').split('\n').slice(-70).join('\n'), '```'].join('\n');
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body
-            });
 
       - name: Опубликовать релиз
         if: startsWith(github.ref, 'refs/tags/v')
