@@ -247,9 +247,17 @@ jobs:
         run: |
           set -e
           APK=$(ls -1 android/app/build/outputs/apk/debug/*.apk | head -1)
-          EXPECT=$(grep '^cert_sha256=' android/keystore/mik-debug.properties | cut -d= -f2)
+          EXPECT=$(grep '^cert_sha256=' android/keystore/mik-debug.properties | cut -d= -f2 || true)
           APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | tail -1)
-          ACTUAL=$("$APKSIGNER" verify --print-certs "$APK" | grep -i "SHA-256 digest" | head -1 | awk '{print $3}')
+          CERTS=$("$APKSIGNER" verify --print-certs "$APK" 2>&1 || true)
+          ACTUAL=$(echo "$CERTS" | grep -i "SHA-256 digest" | head -1 | awk '{print $NF}' | tr '[:lower:]' '[:upper:]' || true)
+          EXPECT=$(echo "$EXPECT" | tr '[:lower:]' '[:upper:]')
+          {
+            echo ""
+            echo '```'
+            echo "$CERTS"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
           {
             echo "### Подпись debug APK"
             echo ""
