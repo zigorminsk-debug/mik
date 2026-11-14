@@ -30,6 +30,69 @@
         "cmd": "/system identity set name=Mik-Home\n/system resource print\n/system clock print"
       }
     ],
+    "steps": [
+      {
+        "title": "Скачайте Winbox и RouterOS",
+        "cmd": "winbox.exe (v3.x) + RouterOS ISO для CHR",
+        "note": "Позже мы соберём CHR в Docker и будем тренироваться без железа.",
+        "text": "Winbox идёт в комплекте с RouterOS на официальном сайте. Не качайте Winbox из непонятных источников — в нём есть встроенный поиск устройств по MAC."
+      },
+      {
+        "title": "Подключите устройство кабелем",
+        "cmd": "ether1 <-> порт ПК",
+        "note": "Скорость 100 Мбит/с на медном порту — это нормально для первого шага, конфигурация не требует гигабита.",
+        "text": "Возьмите обычный патч-корд (не crossover!) и воткните в порт ether1. Второй порт оставьте свободным — ether1 на многих моделях используется для самого первого подключения и в некоторых прошивках он исключён из моста."
+      },
+      {
+        "title": "Откройте Winbox и найдите устройство",
+        "cmd": "Winbox → Neighbors → выбрать устройство → Log in",
+        "note": "Если устройства нет в списке — почти всегда мешает антивирус или фаервол: он блокирует broadcast-обнаружение в локальной сети.",
+        "text": "Запустите Winbox, во вкладке Neighbors должен появиться роутер по MAC-адресу. Двойной клик — и вы в системе."
+      },
+      {
+        "title": "Сделайте первые настройки",
+        "cmd": "/system identity set name=Mik-Home\n/system resource print\n/system clock print",
+        "note": "Имя устройства — это то, что вы увидите в Winbox и в сетях. Называйте понятно: Mik-Home, Mik-Office-1, Mik-Branch-SPB.",
+        "text": "Задайте имя, включите безопасный доступ и посмотрите, что вообще установлено."
+      }
+    ],
+    "cheat": [
+      {
+        "g": "Система",
+        "c": "/system identity set name=Mik-Home",
+        "d": "Задать имя устройства"
+      },
+      {
+        "g": "Система",
+        "c": "/system resource print",
+        "d": "Модель, версия RouterOS, аптайм, CPU и память"
+      },
+      {
+        "g": "Система",
+        "c": "/system clock print",
+        "d": "Текущее время и часовой пояс"
+      },
+      {
+        "g": "Система",
+        "c": "/system license print",
+        "d": "Активные лицензии и их ограничения"
+      },
+      {
+        "g": "Система",
+        "c": "/system reboot",
+        "d": "Перезагрузка устройства"
+      },
+      {
+        "g": "Интерфейсы",
+        "c": "/interface print",
+        "d": "Список всех интерфейсов и их состояние"
+      },
+      {
+        "g": "Общее",
+        "c": "/ip address print",
+        "d": "Адреса и подсети на интерфейсах"
+      }
+    ],
     "parts": [
       "MikroTik — это не просто коробочка с Wi-Fi. Это роутер, в котором работает полноценная операционная система RouterOS со своим файловым менеджером, планировщиком задач, скриптовым языком и сетевым стеком. По сути это маленький Linux-сервер, только всё заточено под маршрутизацию. Начинка типового устройства: процессор, оперативная память, флеш-память с образом RouterOS, несколько сетевых портов и как правило два радиомодуля для Wi-Fi. Никакой отдельной прошивки в привычном смысле нет: RouterOS записана прямо на флеш-память и обновляется как обычный файл. Все настройки хранятся в одном конфигурационном файле, который называется mikrotik.cfg. Его можно скачать, положить в текстовый редактор, и вы увидите всю конфигурацию устройства как обычный текст. Это главная особенность MikroTik: конфиг прозрачный, его легко версионировать в git, переносить на другое устройство и накатывать через API. Программная модель RouterOS построена вокруг дерева разделов. Внутри interfaces живут физические и логические интерфейсы, внутри ip — адреса, маршруты и сервисы, внутри firewall — правила фильтрации, внутри queue — очереди. Каждая команда это путь в дереве, например ip, firewall, filter, add.",
       "Теперь про лицензии. RouterOS имеет несколько уровней: RouterOS, RouterOS SOHO, RouterOS Advanced и RouterOS Subscriber. В устройствах hAP и hEX нужный уровень уже включён в прошивку и его можно активировать бесплатно через System, Licenses. На платформе ARM, x86 и в облачном CHR лицензия покупается отдельно на сайте MikroTik. Выбирайте устройство по числу портов и нужной производительности. hAP ax2 — для домашней сети. hEX — универсальный гигабитный роутер для офиса. RB и CCR — для стойки или для маршрутизации в интернете. CRS — коммутатор с маршрутизацией. CHR — виртуальный роутер, который работает на обычном компьютере и идеально подходит для обучения."
@@ -82,6 +145,75 @@
         "cmd": "/ip service print\n\n# выключить небезопасные и ненужные сервисы\n/ip service set telnet disabled=yes\n/ip service set ftp disabled=yes\n/ip service set www disabled=yes\n/ip service set api disabled=yes\n\n# оставить Winbox и SSH только для своей сети\n/ip service set winbox address=192.168.88.0/24\n/ip service set ssh address=192.168.88.0/24"
       }
     ],
+    "steps": [
+      {
+        "title": "Зайдите через Neighbors и смените пароль",
+        "cmd": "/user set admin password=MyStrongPass2026",
+        "note": "Пароль должен быть не меньше 8 символов. Если оставить пустым — любой, кто в сети, получит полный доступ.",
+        "text": "Двойной клик по устройству в списке Neighbors. Логин по умолчанию admin, пароль пустой."
+      },
+      {
+        "title": "Задайте имя устройства",
+        "cmd": "/system identity set name=Mik-Home\n/system identity print",
+        "note": "Имя не может содержать пробелов, максимум 18 символов.",
+        "text": "Имя видно в Winbox, в логах и в соседях — по нему потом ищете устройство."
+      },
+      {
+        "title": "Настройте адрес на ether1",
+        "cmd": "/ip address add address=192.168.88.1/24 interface=ether1",
+        "note": "Адрес /24 = маска 255.255.255.0. В Winbox это же поле называется Address/Network.",
+        "text": "Укажите адрес и маску вручную — так вы точно контролируете, что получите."
+      },
+      {
+        "title": "Проверьте связь с компьютера",
+        "cmd": "ping 192.168.88.1",
+        "note": "Если ping не идёт — проблема в адресе, маске или кабеле, а не в Winbox.",
+        "text": "На компьютере вручную задайте IP 192.168.88.10/24, шлюз 192.168.88.1, DNS — любой доступный."
+      },
+      {
+        "title": "Закройте лишние сервисы",
+        "cmd": "/ip service set telnet disabled=yes\n/ip service set www disabled=yes\n/ip service set api disabled=yes\n/ip service set winbox address=192.168.88.0/24",
+        "note": "Заходить по IP теперь можно: Winbox → поле Address вводите 192.168.88.1.",
+        "text": "Выключите telnet, ftp, www и api, привяжите winbox и ssh к доверенной подсети."
+      }
+    ],
+    "cheat": [
+      {
+        "g": "Доступ",
+        "c": "/ip service print",
+        "d": "Список сервисов, порты и адреса привязки"
+      },
+      {
+        "g": "Доступ",
+        "c": "/ip service set winbox disabled=yes",
+        "d": "Выключить Winbox"
+      },
+      {
+        "g": "Доступ",
+        "c": "/ip service set ssh address=192.168.88.0/24",
+        "d": "Разрешить SSH только из своей подсети"
+      },
+      {
+        "g": "Пользователи",
+        "c": "/user print",
+        "d": "Список учётных записей и групп"
+      },
+      {
+        "g": "Пользователи",
+        "c": "/user set admin password=Secret123",
+        "d": "Сменить пароль администратора"
+      },
+      {
+        "g": "Пользователи",
+        "c": "/ip address add address=192.168.88.1/24 interface=ether1",
+        "d": "Задать адрес интерфейсу"
+      },
+      {
+        "g": "Общее",
+        "c": "/ping 8.8.8.8 count=4",
+        "d": "Проверить доступность узла"
+      }
+    ],
     "parts": [
       "Есть три основных способа зайти в MikroTik. Первый — по MAC-адресу через MAC-сервер: роутер отвечает на специальный broadcast-запрос даже без настроенного IP. Именно поэтому устройство видно в списке Neighbors сразу из коробки. Второй — по IP-адресу через Winbox или браузер. Третий — через последовательную консоль, это RS-232, и он работает всегда, даже если устройство зависло. Из коробки на устройстве заведены две учётные записи: admin без пароля и полный доступ, и user без пароля с ограниченными правами. Первым делом после входа нужно задать пароль администратору и закрыть доступ по умолчанию. Чтобы заходить по IP, нужно дать устройству адрес и настроить клиентский компьютер в ту же подсеть. Задайте на ether1 адрес 192.168.88.1 с маской 255.255.255.0, а на компьютере вручную укажите 192.168.88.10 с шлюзом 192.168.88.1. В RouterOS много сетевых сервисов: winbox, ssh, telnet, ftp, www, api. Каждый из них слушает свой порт, и по умолчанию они разрешены со всех интерфейсов. С точки зрения безопасности Telnet вообще нельзя использовать, потому что пароль передаётся открытым текстом. Рабочий минимум — это Winbox и SSH, и то только с ограничением по адресам.",
       "Обратите внимание на трюк с адресом 0.0.0.0 в сервисах. Если стоит адрес 0.0.0.0, сервис доступен с любого интерфейса и из интернета, если есть проброс. Если сервис привязан к конкретному адресу интерфейса, он отвечает только на нём. И последнее: если вы потеряли пароль, единственный путь — физический доступ к консоли. Подключитесь кабелем к порту serial, включите терминал на 115200 бод и сбросьте конфигурацию. Поэтому всегда держите в запасе USB-кабель и не выбрасывайте его."
@@ -132,6 +264,75 @@
       {
         "title": "RouterOS CLI — WAN",
         "cmd": "# WAN-порт остаётся отдельным интерфейсом со своим адресом\n/ip address add address=203.0.113.10/30 interface=ether1\n/ip route add dst-address=0.0.0.0/0 gateway=203.0.113.9"
+      }
+    ],
+    "steps": [
+      {
+        "title": "Осмотритесь",
+        "cmd": "/interface ethernet print\n/interface print detail",
+        "note": "Флаг R (running) означает, что на порту есть линк. Флаг X — Disabled.",
+        "text": "Посмотрите, какие порты есть, какие подняты, какие уже в мостах."
+      },
+      {
+        "title": "Создайте мост",
+        "cmd": "/interface bridge add name=bridge1 vlan-filtering=no protocol-mode=rstp",
+        "note": "protocol-mode=rstp быстрее сходится, чем classic STP. На мосте с одним портом STP можно оставить включённым — вреда нет.",
+        "text": "Создайте отдельный мост для LAN, задайте фильтрацию VLAN и отключите STP на единственном мосте без риска петель."
+      },
+      {
+        "title": "Добавьте порты в мост",
+        "cmd": "/interface bridge port add bridge=bridge1 interface=ether2\n/interface bridge port add bridge=bridge1 interface=ether3",
+        "note": "Если порт уже был в другом мосте, сначала удалите его оттуда: /interface bridge port remove [find interface=ether2].",
+        "text": "LAN-порты добавляются как bridge port, без собственных адресов."
+      },
+      {
+        "title": "Повесьте адрес на мост",
+        "cmd": "/ip address add address=192.168.88.1/24 interface=bridge1",
+        "note": "Шлюз для клиентов = 192.168.88.1. Это и есть ваш домашний или офисный роутер.",
+        "text": "Адрес локальной сети назначается на интерфейс bridge1."
+      },
+      {
+        "title": "Проверьте схему",
+        "cmd": "/ip address print detail\n/interface bridge port print",
+        "note": "В выводе должен быть ровно один адрес 192.168.88.1/24 — на bridge1.",
+        "text": "Убедитесь, что адрес один, порты в мосте, а лишние интерфейсы не имеют чужих адресов."
+      }
+    ],
+    "cheat": [
+      {
+        "g": "Интерфейсы",
+        "c": "/interface ethernet print",
+        "d": "Физические порты, состояние линка"
+      },
+      {
+        "g": "Интерфейсы",
+        "c": "/interface bridge print",
+        "d": "Список мостов и их параметры"
+      },
+      {
+        "g": "Интерфейсы",
+        "c": "/interface bridge add name=bridge1",
+        "d": "Создать мост"
+      },
+      {
+        "g": "Интерфейсы",
+        "c": "/interface bridge port add bridge=bridge1 interface=ether2",
+        "d": "Добавить порт в мост"
+      },
+      {
+        "g": "Интерфейсы",
+        "c": "/interface bridge port print",
+        "d": "Какие порты в каком мосте"
+      },
+      {
+        "g": "Интерфейсы",
+        "c": "/interface bridge vlan print",
+        "d": "Правила VLAN-фильтра моста"
+      },
+      {
+        "g": "Интерфейсы",
+        "c": "/interface bridge monitor bridge1",
+        "d": "Живой просмотр событий моста (остановить — Ctrl+C)"
       }
     ],
     "parts": [
@@ -190,6 +391,81 @@
         "cmd": "/interface bridge add name=br-vlan protocol-mode=rstp\n\n# порты пропускают только тегированный трафик\n/interface bridge port add bridge=br-vlan interface=ether2 pvid=none frame-types=admit-only-untagged-and-priority-tagged\n\n# vlan-интерфейсы живут в отдельном мосте\n/interface vlan add name=vlan10 interface=br-vlan vlan-id=10\n/interface vlan add name=vlan20 interface=br-vlan vlan-id=20\n\n/ip address add address=10.0.10.1/24 interface=vlan10\n/ip address add address=10.0.20.1/24 interface=vlan20"
       }
     ],
+    "steps": [
+      {
+        "title": "Спроектируйте таблицу VLAN",
+        "cmd": "VLAN 10 — management (ether2, native)\nVLAN 20 — clients (ether3, native)\nVLAN 30 — trunk к другому коммутатору",
+        "note": "Рисунок схемы на бумаге экономит час отладки.",
+        "text": "Запишите: номер VLAN, какие порты в нём, тегированный или нет, где живёт адрес."
+      },
+      {
+        "title": "Включите фильтрацию VLAN",
+        "cmd": "/interface bridge set br-lan vlan-filtering=yes",
+        "note": "Сразу после этого связь может пропасть — дальше настраиваем порты и правила VLAN.",
+        "text": "Создайте или возьмите существующий мост и включите на нём VLAN-фильтрацию."
+      },
+      {
+        "title": "Опишите порты",
+        "cmd": "/interface bridge port add bridge=br-lan interface=ether2 pvid=10\n/interface bridge port set [find interface=ether3] pvid=20",
+        "note": "Для trunk-портов pvid=none и frame-types=admit-only-untagged-and-priority-tagged.",
+        "text": "Каждый порт должен стать bridge port с нужным PVID."
+      },
+      {
+        "title": "Задайте таблицу bridge",
+        "cmd": "/interface bridge vlan add bridge=br-lan vlan-ids=10 tagged=br-lan\n/interface bridge vlan add bridge=br-lan vlan-ids=20 tagged=br-lan",
+        "note": "Без строки с tagged=br-lan мост не участвует в обмене и трафик не поднимется.",
+        "text": "Укажите, какие порты объединены в какой VLAN, и не забудьте про сам мост."
+      },
+      {
+        "title": "Назначьте адреса и проверьте",
+        "cmd": "/ip address add address=10.0.10.1/24 interface=br-lan vlan=10\n/interface bridge vlan print",
+        "note": "В выводе должно быть видно, что порт ether2 принадлежит VLAN 10, ether3 — VLAN 20.",
+        "text": "Адреса висят на мосте с указанием VLAN."
+      },
+      {
+        "title": "Добавьте bonding при необходимости",
+        "cmd": "/interface bonding add name=bond1 slaves=ether2,ether3 mode=802.3ad\n/ip address add address=10.0.30.1/24 interface=bond1",
+        "note": "Если на другой стороне нет LACP — используйте active-backup, это безопаснее.",
+        "text": "Создайте агрегат и дайте ему адрес."
+      }
+    ],
+    "cheat": [
+      {
+        "g": "VLAN",
+        "c": "/interface bridge vlan add bridge=br-lan vlan-ids=10 tagged=br-lan",
+        "d": "Добавить VLAN в таблицу моста"
+      },
+      {
+        "g": "VLAN",
+        "c": "/interface bridge port set [find interface=ether2] pvid=10",
+        "d": "Задать PVID порту"
+      },
+      {
+        "g": "VLAN",
+        "c": "/interface vlan add name=vlan10 interface=br-lan vlan-id=10",
+        "d": "Создать отдельный vlan-интерфейс"
+      },
+      {
+        "g": "VLAN",
+        "c": "/interface bridge vlan print",
+        "d": "Показать таблицу VLAN моста"
+      },
+      {
+        "g": "Bonding",
+        "c": "/interface bonding add name=bond1 slaves=ether2,ether3 mode=802.3ad",
+        "d": "Создать LACP-агрегат"
+      },
+      {
+        "g": "Bonding",
+        "c": "/interface bonding monitor bond1",
+        "d": "Состояние и счётчики агрегата"
+      },
+      {
+        "g": "Bonding",
+        "c": "/interface bonding print",
+        "d": "Список агрегатов и их slave-портов"
+      }
+    ],
     "parts": [
       "VLAN-ы на MikroTik реализованы двумя принципиально разными способами, и выбор между ними определяет всю дальнейшую работу. Способ первый — фильтрующий bridge. Вы один раз включаете vlan-filtering на мосту и описываете таблицу: для каждого порта задан PVID, для каждой пары портов задан bridge, то есть разрешено ли им обмениваться трафиком конкретного VLAN. Адреса всех VLAN-ов висят на одном интерфейсе моста в виде адресов с префиксом VLAN. Это самый быстрый и гибкий способ, он используется в свежих установках. Способ второй — отдельные интерфейсы VLAN на каждом порту. Для этого каждый порт должен быть bridge port с отключённым PVID и frame-types, равным admit-only-untagged-and-priority-tagged. Тогда порт пропускает только тегированный трафик. А на отдельном, чистом мосте создаются интерфейсы vlan10, vlan20 и так далее, и уже у них берутся адреса. Этот способ медленнее, зато проще для понимания и лучше работает с аппаратным offload. Настройка выглядит так. Сначала создаём bridge с фильтрацией, добавляем порты как bridge port. Затем для каждого порта прописываем PVID — номер VLAN для нетегированного трафика. Потом в таблице bridge указываем, какие порты объединены в какой VLAN. Не забывайте добавить сам мост в каждый VLAN: без этого трафик не пройдёт.",
       "Про bonding. Это способ объединить несколько физических портов в один логический интерфейс. Режимы: 802.3ad или 802.1ax дают LACP и распределяют потоки по хэшам. Balance-alb распределяет по MAC-адресам и не требует поддержки LACP на другой стороне. Active-backup даёт просто резервный канал — основной порт работает, второй в горячем резерве. Важные детали. В bonding нельзя смешивать разные скорости, и в 802.3ad оба конца должны поддерживать LACP, иначе получите петлю и полную потерю связи. Мониторьте состояние через интерфейс monitor. И ещё: в RouterOS 7 доступен новый тип bonding — LACP с MLAG, он же bonding-lacp, где два порта на агрегированном канале работают независимо и не блокируют друг друга."
@@ -240,6 +516,70 @@
       {
         "title": "RouterOS CLI — два провайдера",
         "cmd": "# основной канал\n/ip route add dst-address=0.0.0.0/0 gateway=203.0.113.9 distance=1\n\n# резервный канал\n/ip route add dst-address=0.0.0.0/0 gateway=198.51.100.7 distance=10\n\n# проверить, какой сейчас активен\n/ip route print where dst-address=0.0.0.0/0\n/routing route check 8.8.8.8"
+      }
+    ],
+    "steps": [
+      {
+        "title": "Спланируйте подсети",
+        "cmd": "LAN: 192.168.88.0/24, шлюз 192.168.88.1\nWAN: 203.0.113.8/30, наш адрес .10, шлюз .9",
+        "note": "Планируйте адресацию до подключения оборудования, а не после.",
+        "text": "Запишите план: подсеть LAN, подсеть WAN от провайдера, адреса шлюзов."
+      },
+      {
+        "title": "Назначьте адреса интерфейсам",
+        "cmd": "/ip address add address=192.168.88.1/24 interface=bridge1\n/ip address add address=203.0.113.10/30 interface=ether1",
+        "note": "Несколько адресов на одном интерфейсе — можно, но каждый создаёт свой маршрут и усложняет диагностику.",
+        "text": "По одному адресу на интерфейс, в его подсети."
+      },
+      {
+        "title": "Проверьте вычисленные сети",
+        "cmd": "/ip address print detail",
+        "note": "Убедитесь, что сеть вычислена верно: 203.0.113.10/30 → сеть 203.0.113.8, broadcast 203.0.113.11.",
+        "text": "В выводе print видно network, broadcast и префикс."
+      },
+      {
+        "title": "Задайте маршрут по умолчанию",
+        "cmd": "/ip route add dst-address=0.0.0.0/0 gateway=203.0.113.9",
+        "note": "Если шлюз не пингуется — проверьте маску и подсеть шлюза.",
+        "text": "Укажите шлюз провайдера."
+      },
+      {
+        "title": "Проверьте выход в интернет",
+        "cmd": "/ping 203.0.113.9 count=4\n/ping 8.8.8.8 count=4\n/tool traceroute 8.8.8.8",
+        "note": "Если шлюз пингуется, а 8.8.8.8 нет — проблема уже не в вашем роутере.",
+        "text": "Сначала адрес шлюза, потом внешний адрес, потом имя."
+      }
+    ],
+    "cheat": [
+      {
+        "g": "IP",
+        "c": "/ip address add address=192.168.88.1/24 interface=bridge1",
+        "d": "Назначить адрес интерфейсу"
+      },
+      {
+        "g": "IP",
+        "c": "/ip address print detail",
+        "d": "Адреса, сети, broadcast"
+      },
+      {
+        "g": "IP",
+        "c": "/ip route add dst-address=0.0.0.0/0 gateway=203.0.113.9",
+        "d": "Маршрут по умолчанию"
+      },
+      {
+        "g": "IP",
+        "c": "/routing route check 8.8.8.8",
+        "d": "Каким маршрутом пойдёт пакет"
+      },
+      {
+        "g": "IP",
+        "c": "/ip arp print",
+        "d": "ARP-таблица"
+      },
+      {
+        "g": "Диагностика",
+        "c": "/tool traceroute 8.8.8.8 count=1",
+        "d": "Трассировка маршрута"
       }
     ],
     "parts": [
@@ -298,6 +638,80 @@
         "cmd": "# разрешить клиентам использовать роутер как DNS\n/ip dns set allow-remote-requests=yes servers=1.1.1.1,8.8.8.8 cache-size=2048KiB\n\n# статическая запись для внутреннего сервиса\n/ip dns static add name=nas.local address=192.168.88.20 ttl=1d\n\n# проверить разрешение имени\n/ip dns resolve nas.local\n/ip dns cache print"
       }
     ],
+    "steps": [
+      {
+        "title": "Определите пул",
+        "cmd": "/ip pool add name=pool-lan ranges=192.168.88.100-192.168.88.200",
+        "note": "Оставьте запас: первые адреса под серверы, принтеры и шлюзы.",
+        "text": "Выберите диапазон, который не пересекается с WAN и не используется статически."
+      },
+      {
+        "title": "Создайте DHCP-сервер",
+        "cmd": "/ip dhcp-server add name=dhcp-lan interface=bridge1 address-pool=pool-lan lease-time=8h",
+        "note": "lease-time=8h — аренда на 8 часов. Для гостевых сетей ставьте 30m-1h.",
+        "text": "Привяжите сервер к интерфейсу, откуда он будет раздавать адреса."
+      },
+      {
+        "title": "Задайте параметры сети",
+        "cmd": "/ip dhcp-server network add address=192.168.88.0/24 gateway=192.168.88.1 dns-server=192.168.88.1",
+        "note": "Если задать неверную подсеть, клиенты получат неправильный шлюз и не выйдут в сеть.",
+        "text": "Укажите шлюз и DNS, которые получат клиенты."
+      },
+      {
+        "title": "Закрепите постоянные адреса",
+        "cmd": "/ip dhcp-server lease add address=192.168.88.50 mac-address=AA:BB:CC:DD:EE:01 server=dhcp-lan comment=\"NAS\"",
+        "note": "После резервирования перезагрузите устройство, чтобы оно перезапросило адрес.",
+        "text": "Добавьте lease-записи для серверов и сетевых устройств."
+      },
+      {
+        "title": "Проверьте выдачу",
+        "cmd": "/ip dhcp-server lease print\n/ip dhcp-server lease print detail",
+        "note": "Если lease пустой, а клиент пишет APIPA (169.254.x.x) — сервер не отвечает. Проверьте привязку к интерфейсу и firewall.",
+        "text": "Смотрите, кто подключён и какие адреса выданы."
+      }
+    ],
+    "cheat": [
+      {
+        "g": "DHCP",
+        "c": "/ip pool add name=pool-lan ranges=192.168.88.100-192.168.88.200",
+        "d": "Создать пул адресов"
+      },
+      {
+        "g": "DHCP",
+        "c": "/ip dhcp-server add name=dhcp-lan interface=bridge1 address-pool=pool-lan",
+        "d": "Запустить DHCP-сервер"
+      },
+      {
+        "g": "DHCP",
+        "c": "/ip dhcp-server network add address=192.168.88.0/24 gateway=192.168.88.1",
+        "d": "Параметры выдаваемой сети"
+      },
+      {
+        "g": "DHCP",
+        "c": "/ip dhcp-server lease add address=192.168.88.50 mac-address=AA:BB:CC:DD:EE:01",
+        "d": "Резерв адреса по MAC"
+      },
+      {
+        "g": "DHCP",
+        "c": "/ip dhcp-client add name=wan-dhcp interface=ether1 default-route-distance=1",
+        "d": "DHCP-клиент на WAN"
+      },
+      {
+        "g": "DHCP",
+        "c": "/ip dhcp-server lease print",
+        "d": "Кто и какой адрес получил"
+      },
+      {
+        "g": "DNS",
+        "c": "/ip dns set allow-remote-requests=yes servers=1.1.1.1,8.8.8.8",
+        "d": "Включить DNS-сервер с кэшем"
+      },
+      {
+        "g": "DNS",
+        "c": "/ip dns static add name=nas.local address=192.168.88.20",
+        "d": "Статическая DNS-запись"
+      }
+    ],
     "parts": [
       "DHCP-сервер экономит кучу ручной работы: клиент сам получает адрес, маску, шлюз и DNS. На MikroTik это три шага: создать пул адресов, создать сеть с параметрами и привязать её к интерфейсу. Пул задаёт границы, из которых сервер раздаёт адреса. В параметрах сети указываются шлюз, DNS и время аренды. По умолчанию MikroTik раздаёт себя шлюзом, если адрес не задан явно, но задавать его явно всегда лучше. Очень полезная вещь — динамические записи для резервирования адресов по MAC. Вы указываете MAC-адрес, имя и адрес, и устройство всегда будет получать один и тот же IP. Это избавляет от вечных проблем с принтерами, камерами и сетевыми дисками. На WAN-интерфейсе обычно нужен DHCP-клиент. Он получает адрес, шлюз и DNS от провайдера. Настройка предельно простая: создаёте клиент на ether1 и добавляете его как default-route, чтобы полученный шлюз стал основным маршрутом. Теперь про DNS. MikroTik умеет быть и кэширующим DNS-сервером, и просто клиентом. Серверную часть включают в /ip dns set allow-remote-requests=yes, а в качестве вышестоящих серверов указывают публичные DNS провайдера. Клиенты получают адрес роутера в качестве своего DNS.",
       "Статические записи добавляются в /ip dns static. Это удобно, когда внутренний сервис должен быть доступен по имени: например, nas.local на 192.168.88.20. Не забудьте, что для домена нужен ещё и адрес самого роутера как DNS-сервер, если клиенты идут к нему."
@@ -346,6 +760,70 @@
         "cmd": "# маршрут по умолчанию\n/ip route add dst-address=0.0.0.0/0 gateway=203.0.113.9 distance=1 name=\"ISP-1\"\n\n# резервный провайдер\n/ip route add dst-address=0.0.0.0/0 gateway=198.51.100.7 distance=10 name=\"ISP-2\"\n\n# маршрут к конкретной сети через нужный шлюз\n/ip route add dst-address=192.168.50.0/24 gateway=203.0.113.9\n\n# всё, что смотрим\n/ip route print\n/ip route print where dst-address=0.0.0.0/0\n/routing route check 8.8.8.8"
       }
     ],
+    "steps": [
+      {
+        "title": "Посмотрите базовую таблицу",
+        "cmd": "/ip route print where dst-address~\"0.0.0.0/0\"",
+        "note": "Фильтр where работает по регулярному выражению.",
+        "text": "Connected-маршруты появятся сразу после назначения адресов."
+      },
+      {
+        "title": "Добавьте основной маршрут",
+        "cmd": "/ip route add dst-address=0.0.0.0/0 gateway=203.0.113.9 distance=1",
+        "note": "Если в сети несколько провайдеров, задавайте distance явно у всех.",
+        "text": "Distance равен 1 — это приоритет по умолчанию."
+      },
+      {
+        "title": "Добавьте резервный",
+        "cmd": "/ip route add dst-address=0.0.0.0/0 gateway=198.51.100.7 distance=10",
+        "note": "При этом оба маршрута должны быть достижимы, иначе резерв не появится в таблице.",
+        "text": "Тот же адрес назначения, но с большим distance."
+      },
+      {
+        "title": "Проверьте выбор маршрута",
+        "cmd": "/routing route check 8.8.8.8",
+        "note": "Команда покажет выбранный интерфейс и шлюз, а также список конкурирующих маршрутов.",
+        "text": "Спросите у роутера, как пойдёт пакет к конкретному адресу."
+      },
+      {
+        "title": "Проверьте связь и фактический путь",
+        "cmd": "/ping 8.8.8.8 count=4\n/tool traceroute 8.8.8.8 count=1",
+        "note": "Если первый хоп не ваш шлюз — маршрут выбран не тот, проверьте distance и policy routing.",
+        "text": "Пинг и трассировка покажут реальную картину."
+      }
+    ],
+    "cheat": [
+      {
+        "g": "Маршруты",
+        "c": "/ip route print",
+        "d": "Таблица маршрутизации"
+      },
+      {
+        "g": "Маршруты",
+        "c": "/ip route add dst-address=0.0.0.0/0 gateway=203.0.113.9 distance=1",
+        "d": "Маршрут по умолчанию"
+      },
+      {
+        "g": "Маршруты",
+        "c": "/ip route add dst-address=10.10.0.0/16 gateway=192.168.88.2",
+        "d": "Маршрут к сети"
+      },
+      {
+        "g": "Маршруты",
+        "c": "/ip route print where dst-address=0.0.0.0/0",
+        "d": "Только маршруты по умолчанию"
+      },
+      {
+        "g": "Маршруты",
+        "c": "/routing route check 8.8.8.8",
+        "d": "Проверить выбор маршрута"
+      },
+      {
+        "g": "Маршруты",
+        "c": "/ip route remove [find distance=10]",
+        "d": "Удалить маршруты по признаку"
+      }
+    ],
     "parts": [
       "Маршрутизация в RouterOS начинается не с команд, а с таблицы. У каждого интерфейса с адресом автоматически появляется connected-маршрут: он отвечает за все адреса внутри подсети интерфейса. Эти маршруты вы удалить не можете, да и не нужно. Дальше добавляются статические маршруты. Самый главный из них — маршрут по умолчанию, который говорит: всё, что не известно устройству, отправляй на вот этот шлюз. Он задаётся либо вручную, либо приходит автоматически от DHCP-клиента или PPP-соединения. Ключевая метрика у маршрутов — distance. Это приоритет, чем меньше значение, тем лучше. Реальный пример: два провайдера. Основному маршруту ставим distance один, резервному десять. Пока основной канал жив, трафик идёт по нему, а резервный просто висит в резерве. Если вы уроните основной канал, маршрут с distance десять автоматически встанет в основной. Это и есть failover на уровне маршрутов, и он не требует скриптов. Проверить, какой маршрут сейчас активен, можно командой print с фильтром, а маршрут, который будет выбран для конкретного адреса — командой routing route check. Существуют и более сложные вещи: маршруты с префиксом длиннее, чем тридцать два, для конкретных сервисов. Например, трафик к определённому серверу провайдера можно отправить через другой канал. Это называется policy based routing и мы разберём его во втором уроке главы.",
       "Ещё один важный момент — recursive routes. Если маршрут указывает на адрес, который сам достижим только через другой маршрут, RouterOS умеет считать такие цепочки автоматически. Но если цепочка замкнулась, маршрут уйдёт в состояние unreachable, и это часто бывает при неверно спланированной адресации."
@@ -387,7 +865,7 @@
       },
       {
         "title": "Добавьте маркировку для policy routing",
-        "cmd": "/ip firewall mangle add chain=prerouting src-address=192.168.90.0/24 action=mark-routing new-routing-mark=isp2"
+        "cmd": "/ip firewall raw add chain=prerouting src-address=192.168.90.0/24 action=mark-routing new-routing-mark=isp2"
       },
       {
         "title": "Создайте маршрут по маркировке",
@@ -399,7 +877,82 @@
       },
       {
         "title": "RouterOS CLI — маркировка и маршрут",
-        "cmd": "# 1. маркируем трафик в mangle\n/ip firewall mangle add chain=prerouting src-address=192.168.90.0/24 \\\n    action=mark-routing new-routing-mark=to-ISP2 passthrough=yes\n\n# 2. создаём маршрут для маркировки\n/ip route add dst-address=0.0.0.0/0 gateway=198.51.100.7 routing-mark=to-ISP2\n\n# 3. разрешаем использовать routing-mark (иначе пакеты отбросятся)\n/ip firewall filter add chain=forward connection-state=invalid action=drop\n/ip firewall nat add chain=srcnat action=masquerade out-interface=ether2"
+        "cmd": "# 1. маркируем трафик в raw (только raw, в mangle маркировка игнорируется)\n/ip firewall raw add chain=prerouting src-address=192.168.90.0/24 \\\n    action=mark-routing new-routing-mark=to-ISP2 passthrough=yes\n\n# 2. создаём маршрут для маркировки\n/ip route add dst-address=0.0.0.0/0 gateway=198.51.100.7 routing-mark=to-ISP2\n\n# 3. разрешаем маркированный трафик в forward (иначе пакеты отбросятся)\n/ip firewall filter add chain=forward action=accept routing-mark=to-ISP2\n/ip firewall nat add chain=srcnat action=masquerade out-interface=ether2"
+      }
+    ],
+    "steps": [
+      {
+        "title": "Подготовьте area и instance",
+        "cmd": "/routing ospf instance add name=default version=2\n/routing ospf area add name=backbone area=0.0.0.0 instance=default",
+        "note": "Если сеть маленькая, всё работает в одной области.",
+        "text": "Ядро сети — area 0. Все площадки подключаются к ней."
+      },
+      {
+        "title": "Опишите сети для анонса",
+        "cmd": "/routing ospf network add network=10.10.0.0/16 area=backbone",
+        "note": "Не анонсируйте сети, которые не должны быть видны: это утечка внутренних адресов.",
+        "text": "Укажите подсети, которые должны быть видны другим."
+      },
+      {
+        "title": "Включите OSPF на интерфейсах",
+        "cmd": "/routing ospf interface-template add area=backbone networks=192.168.88.0/24 type=broadcast cost=10",
+        "note": "Для точечных линий между филиалами используйте type=point-to-point — это работает стабильнее.",
+        "text": "Через interface-template задайте area, тип и стоимость."
+      },
+      {
+        "title": "Проверьте соседство",
+        "cmd": "/routing ospf neighbor print\n/routing ospf route print",
+        "note": "Если соседство не поднимается, проверьте совпадение area, hello/dead таймеры и доступность мультикаста.",
+        "text": "Смотрите, поднялись ли соседи и появились ли маршруты."
+      },
+      {
+        "title": "Добавьте маркировку для policy routing",
+        "cmd": "/ip firewall raw add chain=prerouting src-address=192.168.90.0/24 action=mark-routing new-routing-mark=isp2",
+        "note": "Правило ставится первым в цепочке raw, иначе трафик успеет уйти с дефолтной маркировкой.",
+        "text": "Отметьте трафик в raw на этапе prerouting — именно там RouterOS применяет routing-mark."
+      },
+      {
+        "title": "Создайте маршрут по маркировке",
+        "cmd": "/ip route add dst-address=0.0.0.0/0 gateway=198.51.100.7 routing-mark=isp2",
+        "note": "Проверка: /ip route print where routing-mark=isp2.",
+        "text": "Укажите routing-mark и нужный шлюз."
+      }
+    ],
+    "cheat": [
+      {
+        "g": "OSPF",
+        "c": "/routing ospf instance add name=default version=2",
+        "d": "Создать экземпляр OSPF"
+      },
+      {
+        "g": "OSPF",
+        "c": "/routing ospf area add name=backbone area=0.0.0.0 instance=default",
+        "d": "Создать область"
+      },
+      {
+        "g": "OSPF",
+        "c": "/routing ospf network add network=10.10.0.0/16 area=backbone",
+        "d": "Анонсировать сеть"
+      },
+      {
+        "g": "OSPF",
+        "c": "/routing ospf neighbor print",
+        "d": "Соседи OSPF"
+      },
+      {
+        "g": "OSPF",
+        "c": "/routing ospf lsa print",
+        "d": "База состояния каналов"
+      },
+      {
+        "g": "Policy routing",
+        "c": "/ip firewall raw add chain=prerouting action=mark-routing new-routing-mark=isp2",
+        "d": "Пометить трафик"
+      },
+      {
+        "g": "Policy routing",
+        "c": "/ip route add dst-address=0.0.0.0/0 gateway=198.51.100.7 routing-mark=isp2",
+        "d": "Маршрут по маркировке"
       }
     ],
     "parts": [
@@ -451,7 +1004,71 @@
       },
       {
         "title": "RouterOS CLI — разные srcnat для разных задач",
-        "cmd": "# почта через отдельный адрес и порт\n/ip firewall nat add chain=srcnat action=src-nat to-addresses=203.0.113.11 to-ports=25 protocol=tcp out-interface=ether1\n\n# или по адресу источника клиента\n/ip firewall nat add chain=srcnat action=src-nat to-addresses=203.0.113.12 src-address=192.168.88.0/24 out-interface=ether1\n\n# или через маркировку в mangle\n/ip firewall mangle add chain=prerouting dst-port=5060 action=mark-routing new-routing-mark=voip\n/ip firewall nat add chain=srcnat action=masquerade out-interface=ether1 routing-mark=voip"
+        "cmd": "# почта через отдельный адрес и порт\n/ip firewall nat add chain=srcnat action=src-nat to-addresses=203.0.113.11 to-ports=25 protocol=tcp out-interface=ether1\n\n# или по адресу источника клиента\n/ip firewall nat add chain=srcnat action=src-nat to-addresses=203.0.113.12 src-address=192.168.88.0/24 out-interface=ether1\n\n# или через маркировку в raw\n/ip firewall raw add chain=prerouting dst-port=5060 action=mark-routing new-routing-mark=voip\n/ip firewall nat add chain=srcnat action=masquerade out-interface=ether1 routing-mark=voip"
+      }
+    ],
+    "steps": [
+      {
+        "title": "Проверьте базовую маршрутизацию",
+        "cmd": "/ping 8.8.8.8 count=4",
+        "note": "Если пинг не идёт — NAT ни при чём, чините маршрутизацию.",
+        "text": "Прежде чем настраивать NAT, убедитесь, что роутер сам выходит в интернет."
+      },
+      {
+        "title": "Добавьте маскарадин",
+        "cmd": "/ip firewall nat add chain=srcnat action=masquerade out-interface=ether1",
+        "note": "Если исходящих интерфейсов несколько, добавляйте правило на каждый.",
+        "text": "Одно правило на исходящий интерфейс."
+      },
+      {
+        "title": "Проверьте форвард",
+        "cmd": "/ip firewall filter print stats",
+        "note": "Смотрите счётчики: если в правило accept пакеты не попадают, а в drop попадают — читайте условия.",
+        "text": "Трафик должен доходить до цепочки forward."
+      },
+      {
+        "title": "Проверьте с компьютера клиента",
+        "cmd": "ping 8.8.8.8\nnslookup google.com",
+        "note": "Если пинг проходит, а DNS не работает — проверьте, какой DNS отдаёт DHCP-сервер.",
+        "text": "С клиента должен открываться интернет."
+      },
+      {
+        "title": "Посмотрите таблицу соединений",
+        "cmd": "/ip firewall connection print count-only\n/ip firewall connection print where src-address=192.168.88.10",
+        "note": "Пока идёт ping, соединение видно в таблице. Это главный инструмент отладки NAT.",
+        "text": "Убедитесь, что соединения создаются и проходят через NAT."
+      }
+    ],
+    "cheat": [
+      {
+        "g": "NAT",
+        "c": "/ip firewall nat add chain=srcnat action=masquerade out-interface=ether1",
+        "d": "Маскарадин на исходящий интерфейс"
+      },
+      {
+        "g": "NAT",
+        "c": "/ip firewall nat add chain=srcnat action=src-nat to-addresses=203.0.113.10",
+        "d": "NAT на конкретный внешний адрес"
+      },
+      {
+        "g": "NAT",
+        "c": "/ip firewall nat print",
+        "d": "Все правила NAT"
+      },
+      {
+        "g": "NAT",
+        "c": "/ip firewall nat remove [find action=masquerade]",
+        "d": "Удалить правила NAT"
+      },
+      {
+        "g": "NAT",
+        "c": "/ip firewall connection print",
+        "d": "Таблица соединений"
+      },
+      {
+        "g": "NAT",
+        "c": "/ip firewall connection print count-only",
+        "d": "Количество соединений"
       }
     ],
     "parts": [
@@ -504,6 +1121,60 @@
       {
         "title": "RouterOS CLI — NAT Loopback",
         "cmd": "# клиенты внутри сети ходят на внешний адрес сервера\n/ip firewall nat add chain=dstnat protocol=tcp dst-port=443 dst-address=203.0.113.10 \\\n    in-interface=ether1 action=dst-nat to-addresses=192.168.88.50 to-ports=443\n\n# если нужен доступ по имени — добавьте DNS-запись\n/ip dns static add name=server.local address=203.0.113.10"
+      }
+    ],
+    "steps": [
+      {
+        "title": "Определите внешний интерфейс",
+        "cmd": "/ip address print",
+        "note": "Если у вас два WAN-интерфейса, правило привязывается к конкретному.",
+        "text": "Проброс делается только на тот интерфейс, который смотрит в интернет."
+      },
+      {
+        "title": "Создайте правило dstnat",
+        "cmd": "/ip firewall nat add chain=dstnat protocol=tcp dst-port=443 in-interface=ether1 action=dst-nat to-addresses=192.168.88.50 to-ports=443",
+        "note": "Если снаружи и внутри один порт, to-ports можно опустить.",
+        "text": "Укажите порт снаружи и порт внутри."
+      },
+      {
+        "title": "Разрешите трафик в filter",
+        "cmd": "/ip firewall filter add chain=forward protocol=tcp dst-port=443 in-interface=ether1 out-interface=bridge1 dst-address=192.168.88.50 action=accept",
+        "note": "Правило ставьте до общего drop в цепочке forward.",
+        "text": "Без этого правила пакет будет отброшен."
+      },
+      {
+        "title": "Проверьте с внешней точки",
+        "cmd": "curl -I https://ваш-внешний-адрес",
+        "note": "Из локальной сети вы проверите только hairpin, а не реальный проброс.",
+        "text": "С другого интернета, с мобильного оператора — надёжнее, чем из той же сети."
+      },
+      {
+        "title": "Добавьте hairpin при необходимости",
+        "cmd": "/ip firewall nat add chain=dstnat protocol=tcp dst-port=443 dst-address=203.0.113.10 in-interface=ether1 action=dst-nat to-addresses=192.168.88.50 to-ports=443",
+        "note": "Порядок правил в dstnat важен: hairpin должен обрабатывать именно трафик с внутренним источником.",
+        "text": "Отдельное правило для обращения к внешнему адресу изнутри."
+      }
+    ],
+    "cheat": [
+      {
+        "g": "NAT",
+        "c": "/ip firewall nat add chain=dstnat protocol=tcp dst-port=443 in-interface=ether1 action=dst-nat to-addresses=192.168.88.50",
+        "d": "Проброс порта внутрь"
+      },
+      {
+        "g": "NAT",
+        "c": "/ip firewall nat add chain=dstnat dst-address=203.0.113.10 action=dst-nat to-addresses=192.168.88.50",
+        "d": "Hairpin NAT"
+      },
+      {
+        "g": "Firewall",
+        "c": "/ip firewall filter add chain=forward protocol=tcp dst-port=443 in-interface=ether1 out-interface=bridge1 action=accept",
+        "d": "Разрешить проброс в filter"
+      },
+      {
+        "g": "Firewall",
+        "c": "/ip firewall filter print stats",
+        "d": "Правила и их счётчики"
       }
     ],
     "parts": [
@@ -559,6 +1230,75 @@
         "cmd": "/ip firewall address-list add list=trusted address=192.168.88.0/24\n/ip firewall address-list add list=blocked address=203.0.113.66\n\n# правило со ссылкой на список\n/ip firewall filter add chain=input src-address-list=blocked action=drop comment=\"block list\"\n/ip firewall filter add chain=input src-address-list=trusted action=accept\n\n# список меняется без правки правил\n/ip firewall address-list add list=blocked address=198.51.100.0/24\n/ip firewall address-list print"
       }
     ],
+    "steps": [
+      {
+        "title": "Сделайте бэкап перед началом",
+        "cmd": "/system backup save name=before-firewall",
+        "note": "Восстановление: /system backup load name=before-firewall (устройство перезагрузится).",
+        "text": "Правила фильтрации легко испортить, а доступ потерять — ещё проще."
+      },
+      {
+        "title": "Опишите зоны",
+        "cmd": "bridge1 = LAN (доверенная)\nether1 = WAN (публичная)",
+        "note": "Опишите зоны комментариями в правилах — через полгода вы будете благодарны.",
+        "text": "Решите, какие интерфейсы считаются доверенными, какие — публичными."
+      },
+      {
+        "title": "Закройте input",
+        "cmd": "/ip firewall filter add chain=input connection-state=established,related action=accept\n/ip firewall filter add chain=input in-interface=bridge1 action=accept\n/ip firewall filter add chain=input action=drop",
+        "note": "Проверяйте себя: после добавления последнего правила Winbox по-прежнему доступен с LAN?",
+        "text": "Разрешите управление только из LAN, остальное — drop."
+      },
+      {
+        "title": "Настройте forward",
+        "cmd": "/ip firewall filter add chain=forward connection-state=established,related action=accept\n/ip firewall filter add chain=forward connection-state=new out-interface=ether1 action=accept\n/ip firewall filter add chain=forward action=drop",
+        "note": "Не забудьте правила для доступа между VLAN-ми, если они нужны.",
+        "text": "established → new в интернет → drop."
+      },
+      {
+        "title": "Проверьте счётчики",
+        "cmd": "/ip firewall filter print stats",
+        "note": "Нулевые счётчики у нужных правил — повод разобраться. Большие счётчики у drop — повод понять, кто ломится.",
+        "text": "Смотрите, что реально проходит и что отбрасывается."
+      }
+    ],
+    "cheat": [
+      {
+        "g": "Firewall",
+        "c": "/ip firewall filter add chain=input in-interface=bridge1 action=accept",
+        "d": "Разрешить доступ из LAN"
+      },
+      {
+        "g": "Firewall",
+        "c": "/ip firewall filter add chain=forward connection-state=established,related action=accept",
+        "d": "Разрешить обратный трафик"
+      },
+      {
+        "g": "Firewall",
+        "c": "/ip firewall filter add chain=forward action=drop",
+        "d": "Финальный запрет"
+      },
+      {
+        "g": "Firewall",
+        "c": "/ip firewall filter print stats",
+        "d": "Правила со счётчиками"
+      },
+      {
+        "g": "Firewall",
+        "c": "/ip firewall address-list add list=blocked address=1.2.3.4",
+        "d": "Добавить адрес в список"
+      },
+      {
+        "g": "Firewall",
+        "c": "/ip firewall address-list print",
+        "d": "Содержимое списков"
+      },
+      {
+        "g": "Firewall",
+        "c": "/ip firewall filter remove [find chain=forward]",
+        "d": "Удалить правила цепочки"
+      }
+    ],
     "parts": [
       "Firewall в RouterOS состоит из нескольких таблиц, и главная из них — filter. У неё есть цепочки, и пакет проходит через них по порядку. Это не список правил, это этапы обработки. Цепочка input — трафик, предназначенный самому роутеру. Сюда попадает ping с компьютера, обращение к winbox и ssh, DHCP-запросы клиентов. Эту цепочку обычно закрывают жёстко. Цепочка forward — трафик, идущий через роутер. Сюда попадает интернет для клиентов, ответы на ваши исходящие соединения, входящие подключения к проброшенным портам и трафик между VLAN-ами. Цепочка output — трафик, который генерирует сам роутер: пинги, обновления, запросы DNS. По умолчанию она открыта, и это нормально, но при особо строгих требованиях её тоже ограничивают. Порядок правил имеет прямое значение: правила выполняются сверху вниз, и первое подошедшее правило решает судьбу пакета. Поэтому шаблон всегда один: сначала accept для established-соединений, потом правила для нужного направления, а в самом конце drop всего остального. Ключевая деталь — connection tracking. Роутер запоминает каждое исходящее соединение и все ответные пакеты. Поэтому правило accept для established,established пропускает обратный трафик автоматически, и вам не нужно писать обратные правила для каждого сервиса.",
       "Ещё один важный приём — адрес-листы. Вместо того чтобы создавать отдельное правило для каждого заблокированного адреса, вы собираете их в список и ссылаетесь на список в правиле. Так список можно пополнять скриптом или вручную, а политика остаётся читаемой."
@@ -580,7 +1320,7 @@
       "Таблица raw стоит выше всех и работает до подсчёта соединений. Это даёт две возможности. Первая — быстрый drop нежелательного трафика без нагрузки на conntrack. Вторая — маркировка пакетов, которые нужно пропустить через mangle без учёта состояния, например для policy routing.",
       "Для защиты от DoS есть специальные механизмы. Ограничение числа соединений на адрес: если клиент открывает тысячи соединений, он забанен. Ограничение частоты пакетов: syn flood отсекается. Это встроенные средства, и они работают лучше, чем самописные правила.",
       "Layer7-фильтрация позволяет смотреть внутрь протокола: регулярные выражения по HTTP-заголовкам, редиректы на другой порт, ограничение скорости соединений. Powerful, но тяжёлый: каждое правило нагружает процессор, поэтому применяйте его точечно.",
-      "И последнее: не забывайте raw в схемах с hairpin и policy routing. Маркировка должна применяться до принятия решения о маршрутизации, а соединения, которые вы маркируете, должны участвовать в conntrack. Поэтому mangle с action=mark-routing ставится в raw, а не в mangle."
+      "И последнее: не забывайте raw в схемах с hairpin и policy routing. Маркировка для policy routing должна применяться до принятия решения о маршрутизации, а соединения, которые вы маркируете, должны участвовать в conntrack. Поэтому action=mark-routing ставится в raw, а не в mangle."
     ],
     "codes": [
       {
@@ -605,7 +1345,7 @@
       },
       {
         "title": "RouterOS CLI — маркировка",
-        "cmd": "# маркируем гостевую сеть\n/ip firewall mangle add chain=prerouting src-address=192.168.90.0/24 action=mark-routing new-routing-mark=guest\n\n# метка пакета для очередей\n/ip firewall mangle add chain=prerouting src-address=192.168.90.0/24 action=mark-packet new-packet-mark=guest-pkt\n\n# метка соединения\n/ip firewall mangle add chain=prerouting src-address=192.168.90.0/24 action=mark-connection new-connection-mark=guest-conn\n\n# для policy routing маркировка делается в raw, до conntrack\n/ip firewall raw add chain=prerouting src-address=192.168.90.0/24 action=mark-routing new-routing-mark=guest"
+        "cmd": "# метка пакета для очередей\n/ip firewall mangle add chain=prerouting src-address=192.168.90.0/24 action=mark-packet new-packet-mark=guest-pkt\n\n# метка соединения\n/ip firewall mangle add chain=prerouting src-address=192.168.90.0/24 action=mark-connection new-connection-mark=guest-conn\n\n# для policy routing маркировка делается в raw, до conntrack\n/ip firewall raw add chain=prerouting src-address=192.168.90.0/24 action=mark-routing new-routing-mark=guest"
       },
       {
         "title": "RouterOS CLI — быстрый drop и защита",
@@ -616,13 +1356,77 @@
         "cmd": "# редирект на локальный веб-сервер\n/ip firewall nat add chain=dstnat protocol=tcp dst-port=80 in-interface=ether1 action=redirect to-ports=8080\n\n# ограничение по содержимому запроса\n/ip firewall filter add chain=forward content=\"Host: example.com\" action=drop\n\n# проверка регулярного выражения (быстро, без layer7)\n/ip firewall filter add chain=forward protocol=tcp content=\"|2f|2f|2e|2e|2e|2f|\" action=drop"
       }
     ],
+    "steps": [
+      {
+        "title": "Определите, что маркируете",
+        "cmd": "Гость: src-address=192.168.90.0/24\nVoIP: dst-port=5060,5061",
+        "note": "Чем проще признак, тем меньше нагрузка и выше предсказуемость.",
+        "text": "Гостевой трафик, определённый сервис, конкретный клиент."
+      },
+      {
+        "title": "Создайте маркировку в raw",
+        "cmd": "/ip firewall raw add chain=prerouting src-address=192.168.90.0/24 action=mark-routing new-routing-mark=guest",
+        "note": "Для очередей достаточно mark-packet в mangle.",
+        "text": "Для policy routing маркировка ставится именно в raw."
+      },
+      {
+        "title": "Привяжите маркировку к маршруту",
+        "cmd": "/ip route add dst-address=0.0.0.0/0 gateway=198.51.100.7 routing-mark=guest",
+        "note": "Без маршрута метка просто висит без дела.",
+        "text": "Создайте маршрут с этой меткой."
+      },
+      {
+        "title": "Добавьте ограничения против DoS",
+        "cmd": "/ip firewall filter add chain=forward protocol=tcp connection-limit=100,20,10 src-address-list=trusted action=drop",
+        "note": "Параметры: общее число, сколько разрешено одному IP, сколько на порт, сколько в burst.",
+        "text": "Лимит соединений и частоты пакетов для доверенных источников."
+      },
+      {
+        "title": "Проверьте нагрузку и логи",
+        "cmd": "/system resource print\n/log print where topics~\"firewall\"",
+        "note": "Если CPU ушёл в 100% — упрощайте правила, отключайте layer7 на пиковых трафиках.",
+        "text": "После включения сложных правил следите за процессором."
+      }
+    ],
+    "cheat": [
+      {
+        "g": "Mangle",
+        "c": "/ip firewall mangle add chain=prerouting action=mark-packet new-packet-mark=guest",
+        "d": "Маркировать пакет"
+      },
+      {
+        "g": "Mangle",
+        "c": "/ip firewall mangle add chain=prerouting action=mark-connection new-connection-mark=conn1",
+        "d": "Маркировать соединение"
+      },
+      {
+        "g": "Raw",
+        "c": "/ip firewall raw add chain=prerouting action=mark-routing new-routing-mark=guest",
+        "d": "Маркировка для policy routing"
+      },
+      {
+        "g": "Защита",
+        "c": "/ip firewall filter add chain=forward protocol=tcp connection-limit=100,20,10 action=drop",
+        "d": "Лимит соединений"
+      },
+      {
+        "g": "Защита",
+        "c": "/ip firewall filter add chain=forward protocol=tcp connection-rate=100,10 action=drop",
+        "d": "Защита от syn-flood"
+      },
+      {
+        "g": "Защита",
+        "c": "/ip firewall filter add chain=input log=yes log-prefix=FIREWALL",
+        "d": "Логирование правила"
+      }
+    ],
     "parts": [
       "Mangle — это таблица для манипуляций с пакетами, которые не умеет filter. Здесь ставят метки для очередей, меняют TTL, задают DSCP для QoS и управляют policy routing. Самый частый сценарий в mangle — маркировка трафика по адресу источника или по порту. Гостевая сеть получает метку guest, и дальше simple queues распределяют её полосу отдельно от рабочей. Ещё один приём — маркировка connection mark. Он позволяет пометить целое соединение, чтобы потом применять к нему правила в filter или NAT. Это удобно, когда нужно различать трафик по признаку, который виден только на первом пакете. Таблица raw стоит выше всех и работает до подсчёта соединений. Это даёт две возможности. Первая — быстрый drop нежелательного трафика без нагрузки на conntrack. Вторая — маркировка пакетов, которые нужно пропустить через mangle без учёта состояния, например для policy routing. Для защиты от DoS есть специальные механизмы. Ограничение числа соединений на адрес: если клиент открывает тысячи соединений, он забанен. Ограничение частоты пакетов: syn flood отсекается. Это встроенные средства, и они работают лучше, чем самописные правила. Layer7-фильтрация позволяет смотреть внутрь протокола: регулярные выражения по HTTP-заголовкам, редиректы на другой порт, ограничение скорости соединений. Powerful, но тяжёлый: каждое правило нагружает процессор, поэтому применяйте его точечно.",
-      "И последнее: не забывайте raw в схемах с hairpin и policy routing. Маркировка должна применяться до принятия решения о маршрутизации, а соединения, которые вы маркируете, должны участвовать в conntrack. Поэтому mangle с action=mark-routing ставится в raw, а не в mangle."
+      "И последнее: не забывайте raw в схемах с hairpin и policy routing. Маркировка для policy routing должна применяться до принятия решения о маршрутизации, а соединения, которые вы маркируете, должны участвовать в conntrack. Поэтому action=mark-routing ставится в raw, а не в mangle."
     ],
     "partTexts": [
       "Mangle — это таблица для манипуляций с пакетами, которые не умеет filter. Здесь ставят метки для очередей, меняют TTL, задают DSCP для QoS и управляют policy routing. Самый частый сценарий в mangle — маркировка трафика по адресу источника или по порту. Гостевая сеть получает метку guest, и дальше simple queues распределяют её полосу отдельно от рабочей. Ещё один приём — маркировка connection mark. Он позволяет пометить целое соединение, чтобы потом применять к нему правила в filter или NAT. Это удобно, когда нужно различать трафик по признаку, который виден только на первом пакете. Таблица raw стоит выше всех и работает до подсчёта соединений. Это даёт две возможности. Первая — быстрый drop нежелательного трафика без нагрузки на conntrack. Вторая — маркировка пакетов, которые нужно пропустить через mangle без учёта состояния, например для policy routing. Для защиты от DoS есть специальные механизмы. Ограничение числа соединений на адрес: если клиент открывает тысячи соединений, он забанен. Ограничение частоты пакетов: syn flood отсекается. Это встроенные средства, и они работают лучше, чем самописные правила. Layer7-фильтрация позволяет смотреть внутрь протокола: регулярные выражения по HTTP-заголовкам, редиректы на другой порт, ограничение скорости соединений. Powerful, но тяжёлый: каждое правило нагружает процессор, поэтому применяйте его точечно.",
-      "И последнее: не забывайте raw в схемах с hairpin и policy routing. Маркировка должна применяться до принятия решения о маршрутизации, а соединения, которые вы маркируете, должны участвовать в conntrack. Поэтому mangle с action=mark-routing ставится в raw, а не в mangle."
+      "И последнее: не забывайте raw в схемах с hairpin и policy routing. Маркировка для policy routing должна применяться до принятия решения о маршрутизации, а соединения, которые вы маркируете, должны участвовать в conntrack. Поэтому action=mark-routing ставится в raw, а не в mangle."
     ]
   },
   {
@@ -671,6 +1475,76 @@
       {
         "title": "RouterOS CLI — PCQ на интерфейсе",
         "cmd": "/queue pcq add name=pcq-down rate=50M limit=50M total-limit=100M\n/queue pcq add name=pcq-up rate=10M limit=10M\n\n/queue type add name=pcq-down type=pcq pcq-classifier=dst-address pcq-rate=50M pcq-limit=50M pcq-total-limit=100M\n/queue type add name=pcq-up type=pcq pcq-classifier=src-address pcq-rate=10M pcq-limit=10M\n\n# одна очередь на весь интерфейс\n/queue simple add name=interface-queue target=ether1 max-limit=100M/100M queue=pcq-down/pcq-up"
+      }
+    ],
+    "steps": [
+      {
+        "title": "Измерьте реальную скорость",
+        "cmd": "/tool bandwidth-test",
+        "note": "Тестируйте в сторону провайдера и в вашу сторону: аплоад обычно меньше.",
+        "text": "Узнайте, сколько канал даёт на самом деле, а не сколько написано в договоре."
+      },
+      {
+        "title": "Создайте очередь на интерфейсе",
+        "cmd": "/queue simple add name=wan-limit target=ether1 max-limit=100M/100M",
+        "note": "Ограничивайте чуть ниже реальной скорости: 90-95% от измеренной.",
+        "text": "Это потолок для всего трафика на интерфейсе."
+      },
+      {
+        "title": "Добавьте PCQ для честной делёжки",
+        "cmd": "/queue type add name=pcq-down type=pcq pcq-classifier=dst-address pcq-rate=50M pcq-limit=50M\n/queue simple add name=wan-limit target=ether1 max-limit=100M/100M queue=pcq-down/pcq-down",
+        "note": "Без PCQ один активный пользователь заберёт весь канал.",
+        "text": "Одна очередь PCQ на весь интерфейс."
+      },
+      {
+        "title": "Ограничьте отдельных клиентов",
+        "cmd": "/queue simple add name=child-pc target=192.168.88.10/32 max-limit=20M/20M priority=1/1",
+        "note": "Гарантия priority 1/1 даёт этой очереди приоритет при нехватке канала.",
+        "text": "Simple queue на адрес с гарантией и максимумом."
+      },
+      {
+        "title": "Промаркируйте приоритетный трафик",
+        "cmd": "/ip firewall mangle add chain=prerouting dst-port=5060 action=mark-packet new-packet-mark=voip\n/queue simple add name=voip target=0.0.0.0/0 packet-mark=voip priority=1/1 limit=5M/5M",
+        "note": "Маркировка обязательна: без неё приоритетные очереди останутся пустыми.",
+        "text": "VoIP и видео должны идти первыми."
+      },
+      {
+        "title": "Проверьте результат",
+        "cmd": "/queue simple print stats\n/queue simple monitor voip",
+        "note": "Если в очереди «всегда 0 байт» — трафик не маркируется или приоритет настроен неверно.",
+        "text": "Смотрите реальные скорости и очереди."
+      }
+    ],
+    "cheat": [
+      {
+        "g": "Очереди",
+        "c": "/queue simple add name=guest target=192.168.90.0/24 max-limit=10M/10M",
+        "d": "Ограничить скорость группы"
+      },
+      {
+        "g": "Очереди",
+        "c": "/queue type add name=pcq-down type=pcq pcq-rate=50M pcq-limit=50M",
+        "d": "Создать тип PCQ"
+      },
+      {
+        "g": "Очереди",
+        "c": "/queue simple add name=wan target=ether1 max-limit=100M/100M queue=pcq-down/pcq-down",
+        "d": "Очередь на интерфейс с PCQ"
+      },
+      {
+        "g": "Очереди",
+        "c": "/queue tree add name=group parent=wan-down limit=70M",
+        "d": "Узел дерева HTB"
+      },
+      {
+        "g": "Очереди",
+        "c": "/queue simple print stats",
+        "d": "Статистика очередей"
+      },
+      {
+        "g": "Очереди",
+        "c": "/queue simple monitor name",
+        "d": "Живой мониторинг очереди"
       }
     ],
     "parts": [
@@ -728,6 +1602,76 @@
       {
         "title": "RouterOS CLI — менеджер и точки",
         "cmd": "# 1. менеджер на центральном устройстве\n/certificate add name=capman-cert common-name=capman days-valid=3650\n/certificate sign capman-cert\n/interface wireless capsm manager set enabled=yes certificate=capman-cert ca-certificate=auto \\\n    require-peer-certificate=yes authentication-method=rsa512 sha256\n\n# 2. точка доступа подключается к менеджеру\n/interface wireless capsm set [find interface=wlan1] enabled=yes master-configuration=capman1 \\\n    slave=yes\n\n# 3. профиль и конфигурация\n/interface wireless capsm profile add name=profile-office ssid=\"Mik-Office\" \\\n    security-profile=profile1 add-mac-address=00:00:00:00:00:00\n\n/interface wireless capsm configuration add name=cfg-office master-configuration=capman1 \\\n    profile=profile-office channel=auto datapath=802.11\n\n# 4. привязка конфигурации к точке\n/interface wireless capsm configuration set [find name~\"cfg-office\"] \n    ssid=\"Mik-Office\" channel=auto"
+      }
+    ],
+    "steps": [
+      {
+        "title": "Проверьте радиомодули",
+        "cmd": "/interface wireless print",
+        "note": "В RouterOS 7 обычно wlan1 = 2.4 ГГц, wlan2 = 5 ГГц.",
+        "text": "Убедитесь, какие интерфейсы беспроводные и на каких частотах."
+      },
+      {
+        "title": "Создайте профиль безопасности",
+        "cmd": "/interface wireless security-profiles add name=profile1 mode=dynamic-psk authentication-types=wpa2-psk,wpa3-psk encryption=AES passphrase=\"VeryStrongKey2026!\"",
+        "note": "Ключ от 8 символов. Для гостей удобнее отдельный профиль с captive-подобным доступом или отдельный ключ.",
+        "text": "Один профиль на сеть, с WPA2 и WPA3."
+      },
+      {
+        "title": "Переведите интерфейс в режим AP",
+        "cmd": "/interface wireless set wlan1 mode=ap ssid=\"Mik-Office\" band=2ghz-b/g/n security-profile=profile1",
+        "note": "Оставьте 2.4 ГГц в режиме b/g для максимальной совместимости, 5 ГГц — в режиме ac.",
+        "text": "Задайте SSID, полосу и профиль."
+      },
+      {
+        "title": "Настройте CAPsMAN (если точек несколько)",
+        "cmd": "/interface wireless capsm manager set enabled=yes certificate=capman-cert",
+        "note": "Сертификаты обязательны: без них точки не подключатся.",
+        "text": "Менеджер на центральном устройстве, точки в режиме slave."
+      },
+      {
+        "title": "Создайте гостевую сеть",
+        "cmd": "/ip firewall filter add chain=forward src-address=192.168.90.0/24 out-interface=ether1 action=accept",
+        "note": "Гостевой трафик не должен попадать в корпоративные сегменты.",
+        "text": "Отдельный VLAN, отдельный DHCP, изоляция клиентов."
+      },
+      {
+        "title": "Проверьте покрытие и мощность",
+        "cmd": "/interface wireless monitor wlan1 once",
+        "note": "Ориентир: -65 дБм — отличный сигнал, -75 дБм — минимально рабочий.",
+        "text": "Измерьте сигнал в контрольных точках и уменьшите мощность."
+      }
+    ],
+    "cheat": [
+      {
+        "g": "Wi-Fi",
+        "c": "/interface wireless print",
+        "d": "Радиоинтерфейсы и их режимы"
+      },
+      {
+        "g": "Wi-Fi",
+        "c": "/interface wireless set wlan1 mode=ap ssid=\"MyWiFi\"",
+        "d": "Перевести интерфейс в режим точки доступа"
+      },
+      {
+        "g": "Wi-Fi",
+        "c": "/interface wireless security-profiles add name=profile1 mode=dynamic-psk passphrase=\"key\"",
+        "d": "Профиль безопасности"
+      },
+      {
+        "g": "Wi-Fi",
+        "c": "/interface wireless monitor wlan1 once",
+        "d": "Уровень сигнала и состояние"
+      },
+      {
+        "g": "CAPsMAN",
+        "c": "/interface wireless capsm manager set enabled=yes certificate=capman-cert",
+        "d": "Включить менеджер точек"
+      },
+      {
+        "g": "CAPsMAN",
+        "c": "/interface wireless capsm profile add name=profile-guest ssid=\"Guest\"",
+        "d": "Профиль для гостевой сети"
       }
     ],
     "parts": [
@@ -788,6 +1732,81 @@
         "cmd": "/interface gre add name=gre1 remote-address=203.0.113.2 local-address=203.0.113.1 \\\n    allow-fast-path=yes keepalive=10s,20\n\n/ip address add address=10.99.0.1/30 interface=gre1\n/ip route add dst-address=10.99.0.0/30 interface=gre1\n\n# OSPF поверх туннеля\n/routing ospf interface-template add area=backbone networks=10.99.0.0/30 type=point-to-point"
       }
     ],
+    "steps": [
+      {
+        "title": "Выберите технологию под задачу",
+        "cmd": "Нужна скорость и простота → WireGuard\nНужен L2 (мост, VLAN) → EoIP\nНужна совместимость со старыми клиентами → L2TP/IPsec",
+        "note": "WireGuard почти всегда лучший выбор, если нет требований legacy.",
+        "text": "Удалённые сотрудники — L2TP/IPsec или WireGuard. Площадки — WireGuard, GRE+IPsec или EoIP."
+      },
+      {
+        "title": "Настройте WAN и проверьте связь",
+        "cmd": "/ping 203.0.113.2 count=4",
+        "note": "Если базовый пинг не идёт, туннель тоже не поднимется.",
+        "text": "Сначала обычный интернет, потом туннель поверх него."
+      },
+      {
+        "title": "Создайте туннель",
+        "cmd": "/interface wireguard add name=wg0 listen-port=13231",
+        "note": "Укажите адреса пиров и allowed-address: подсети, которые будут доступны через туннель.",
+        "text": "GRE, EoIP или WireGuard — в зависимости от выбора."
+      },
+      {
+        "title": "Задайте адреса туннеля",
+        "cmd": "/ip address add address=10.99.1.1/24 interface=wg0\n/ip route add dst-address=10.99.1.0/24 interface=wg0",
+        "note": "В WireGuard маршруты часто создаются автоматически по allowed-address в пире.",
+        "text": "Внутренняя подсеть площадок."
+      },
+      {
+        "title": "Разрешите трафик в firewall",
+        "cmd": "/ip firewall filter add chain=forward in-interface=wg0 action=accept\n/ip firewall filter add chain=input in-interface=wg0 action=accept",
+        "note": "Без правил туннель поднимется, но трафик не пойдёт.",
+        "text": "Туннель — это интерфейс, правила нужны как для любого другого."
+      },
+      {
+        "title": "Проверьте туннель",
+        "cmd": "/ping 10.99.1.2 count=4\n/interface wireguard print",
+        "note": "Для GRE смотрите keepalive и состояние туннеля в выводе интерфейса.",
+        "text": "Пингуйте удалённую площадку по внутреннему адресу."
+      }
+    ],
+    "cheat": [
+      {
+        "g": "PPPoE",
+        "c": "/ppp profile add name=isp use-peer-dns=yes",
+        "d": "PPP-профиль провайдера"
+      },
+      {
+        "g": "PPPoE",
+        "c": "/interface pppoe-client add name=pppoe1 interface=ether1 user=isp password=\"Pass\"",
+        "d": "PPPoE-клиент"
+      },
+      {
+        "g": "Туннели",
+        "c": "/interface gre add name=gre1 remote-address=203.0.113.2",
+        "d": "GRE-туннель"
+      },
+      {
+        "g": "Туннели",
+        "c": "/interface eoip add name=eoip1 tunnel-id=100 remote-address=203.0.113.2",
+        "d": "EoIP-туннель"
+      },
+      {
+        "g": "Туннели",
+        "c": "/interface wireguard add name=wg0 listen-port=13231",
+        "d": "WireGuard-интерфейс"
+      },
+      {
+        "g": "Туннели",
+        "c": "/interface wireguard peers add public-key=\"...\" allowed-address=10.99.1.0/24",
+        "d": "Пир WireGuard"
+      },
+      {
+        "g": "IPsec",
+        "c": "/ip ipsec policy add peer=peer1 tunnel-mode=ipsec proposal=default",
+        "d": "Политика IPsec"
+      }
+    ],
     "parts": [
       "PPPoE — это протокол, по которому провайдеры чаще всего выдают интернет по телефонной линии. Клиент отправляет PPP-запрос в PPPoE-сессию, а провайдер возвращает адрес, шлюз и DNS. На MikroTik это отдельный интерфейс, который живёт поверх физического порта. Настройка простая: создаёте PPP-профиль с именем и логином, а затем клиент, который ссылается на этот профиль и на физический интерфейс. В PPP-профиле можно задать use-peer-dns и use-peer-ntp, чтобы получать от провайдера DNS и время. Важный момент: PPP-интерфейс не привязан к адресу напрямую, у него свой адрес. Маршрут по умолчанию появляется автоматически, но если у вас два провайдера, задайте distance для каждого клиента явно. Теперь туннели между площадками. GRE — это простой туннель без шифрования: он инкапсулирует IP-пакеты в IP-пакеты. Скорость максимальная, но данные летят открыто, поэтому GRE обычно используют только внутри уже защищённого канала или в паре с IPsec. EoIP — это туннель второго уровня. Он переносит не IP-пакеты, а Ethernet-кадры, и это даёт возможность пробрасывать мост между площадками, работать с VLAN и запускать протоколы, которые не любят NAT. Минус — нет шифрования и ограниченная пропускная способность.",
       "L2TP — самый распространённый вариант для доступа удалённых сотрудников. Он работает поверх UDP, поэтому проходит через большинство сетей, но шифрования в нём нет: обязательно добавляйте IPsec, и тогда схема называется L2TP/IPsec. WireGuard — современная альтернатива. Он в ядре Linux, работает на уровне ядра, поэтому даёт скорость, близкую к гигабиту даже на слабом устройстве. Шифрование встроено, конфигурация минимальная, ключи удобно управляются. Для IPsec на MikroTik есть два режима. IKEv2 с современными шифрами и EAP — удобный выбор для клиентов. Режим transport с сертификатами или PSK — классика для site-to-site между маршрутизаторами. И помните: IPsec в RouterOS требует лицензию выше базовой."
@@ -843,6 +1862,81 @@
       {
         "title": "Роутер — добавление ключа",
         "cmd": "# на компьютере: ssh-keygen -t ed25519 -C \"admin@router\"\n# загружаем публичный ключ на роутер (в Winbox: Files или SSH-copy-id)\n\n/user ssh-keys import user=admin public-key-file=id_ed25519.pub\n/user ssh-keys print\n\n# проверка\nssh admin@192.168.88.1"
+      }
+    ],
+    "steps": [
+      {
+        "title": "Сделайте бэкап",
+        "cmd": "/system backup save name=before-hardening",
+        "note": "Бэкап — единственная страховка при потере доступа.",
+        "text": "Перед любыми изменениями доступа."
+      },
+      {
+        "title": "Выключите лишние сервисы",
+        "cmd": "/ip service set telnet disabled=yes\n/ip service set ftp disabled=yes\n/ip service set www disabled=yes",
+        "note": "Не выключайте winbox, пока не убедитесь, что можете войти по SSH или с консоли.",
+        "text": "Telnet, FTP и WWW не нужны почти никогда."
+      },
+      {
+        "title": "Ограничьте доступ по адресам",
+        "cmd": "/ip service set winbox address=192.168.88.0/24\n/ip service set ssh address=192.168.88.0/24",
+        "note": "Проверяйте себя: войти по SSH с другого адреса должно быть невозможно.",
+        "text": "Привяжите winbox и ssh к управляющей сети."
+      },
+      {
+        "title": "Заведите отдельного пользователя",
+        "cmd": "/user group add name=ops policy=read,api,test\n/user add name=operator group=ops password=OperatorPass",
+        "note": "Назначение групп — удобный способ ограничить права без правки каждого пользователя.",
+        "text": "Не работайте под admin каждый день."
+      },
+      {
+        "title": "Настройте вход по ключу",
+        "cmd": "/user ssh-keys import user=operator public-key-file=id_ed25519.pub",
+        "note": "Проверьте вход до того, как закроете парольный доступ.",
+        "text": "Сгенерируйте ключ на компьютере и импортируйте публичную часть."
+      },
+      {
+        "title": "Включите журналирование",
+        "cmd": "/ip firewall filter set [find action=drop] log=yes log-prefix=FW\n/log print follow",
+        "note": "Если логов много, ограничьте темы: /system logging set [find topics~\"firewall\"] disabled=yes для лишних.",
+        "text": "Логи firewall и уведомления о входе."
+      }
+    ],
+    "cheat": [
+      {
+        "g": "Безопасность",
+        "c": "/ip service set telnet disabled=yes",
+        "d": "Выключить telnet"
+      },
+      {
+        "g": "Безопасность",
+        "c": "/ip service set winbox address=192.168.88.0/24",
+        "d": "Ограничить сервис по адресу"
+      },
+      {
+        "g": "Безопасность",
+        "c": "/user add name=operator group=ops password=Pass",
+        "d": "Создать пользователя"
+      },
+      {
+        "g": "Безопасность",
+        "c": "/user ssh-keys import user=operator public-key-file=key.pub",
+        "d": "Импортировать публичный ключ"
+      },
+      {
+        "g": "Безопасность",
+        "c": "/certificate sign server ca=ca",
+        "d": "Подписать сертификат"
+      },
+      {
+        "g": "Безопасность",
+        "c": "/ip firewall filter set [find action=drop] log=yes",
+        "d": "Включить логирование правил"
+      },
+      {
+        "g": "Безопасность",
+        "c": "/system backup save name=backup-2026",
+        "d": "Создать бэкап"
       }
     ],
     "parts": [
@@ -903,6 +1997,81 @@
         "cmd": "/system scheduler add name=hourly-report interval=1h on-event={\n    /system script run check-internet;\n    /ip dhcp-server lease print;\n} policy=read,script,policy start-time=startup\n\n/system scheduler print"
       }
     ],
+    "steps": [
+      {
+        "title": "Проверьте политику скриптов",
+        "cmd": "/system script print detail",
+        "note": "Если скрипт не может изменить маршрут, добавьте policy=write в его policy.",
+        "text": "Скрипту нужны права: read, script, policy, write."
+      },
+      {
+        "title": "Напишите первый скрипт",
+        "cmd": "/system script add name=test source={ :log info \"test run\"; }",
+        "note": "Тестируйте скрипт вручную: /system script run name=test, и смотрите /log print.",
+        "text": "Начните с простого: пинг и запись результата в лог."
+      },
+      {
+        "title": "Назначьте расписание",
+        "cmd": "/system scheduler add name=every-5min interval=5m on-event={ /system script run test; } policy=read,script,policy",
+        "note": "Для ежедневных задач есть start-time=00:30:00 с интервалом 1d.",
+        "text": "Планировщик запускает скрипт по интервалу."
+      },
+      {
+        "title": "Добавьте netwatch для failover",
+        "cmd": "/tool netwatch add name=isp1 host=203.0.113.9 interval=30s down-script={ /log warning \"ISP down\"; }",
+        "note": "Проверяйте логику переключения в обе стороны — down и up.",
+        "text": "Следите за шлюзом и переключайте маршруты по событию."
+      },
+      {
+        "title": "Откройте API для автоматизации",
+        "cmd": "/ip service set api address=192.168.88.10/32",
+        "note": "Никогда не выставляйте API в интернет. Только VPN или локальная сеть.",
+        "text": "Включите сервис, ограничьте адрес, создайте пользователя."
+      },
+      {
+        "title": "Проверьте API запросом",
+        "cmd": "curl -k -u ansible:ApiPass https://192.168.88.1/rest/system/resource",
+        "note": "Если пришлось использовать -k, значит сертификат устройства не установлен в доверенные.",
+        "text": "С компьютера сделайте запрос и посмотрите JSON."
+      }
+    ],
+    "cheat": [
+      {
+        "g": "Скрипты",
+        "c": "/system script add name=test source={ :log info \"hi\"; }",
+        "d": "Создать скрипт"
+      },
+      {
+        "g": "Скрипты",
+        "c": "/system script run name=test",
+        "d": "Запустить скрипт"
+      },
+      {
+        "g": "Скрипты",
+        "c": "/system scheduler add name=every-5min interval=5m on-event={ /system script run test; }",
+        "d": "Задание по расписанию"
+      },
+      {
+        "g": "Скрипты",
+        "c": "/tool netwatch add name=isp1 host=203.0.113.9 interval=30s down-script={}",
+        "d": "Слежение за узлом"
+      },
+      {
+        "g": "Скрипты",
+        "c": "/tool netwatch print",
+        "d": "Состояние netwatch"
+      },
+      {
+        "g": "API",
+        "c": "/ip service set api address=192.168.88.10/32",
+        "d": "Ограничить API по адресу"
+      },
+      {
+        "g": "API",
+        "c": "curl -k -u user:pass https://192.168.88.1/rest/system/resource",
+        "d": "Запрос к REST API"
+      }
+    ],
     "parts": [
       "RouterOS умеет выполнять команды по расписанию и реагировать на события. Это то, что превращает роутер из коробки с настройками в управляемый элемент сети. Скрипты на RouterOS пишутся на собственном языке. Это не Shell и не Python, а простой интерпретатор с полезными командами: log, put, set, find, foreach, while, delay, а также вызовы /tool. Переменные начинаются с доллара. Базовый пример: пинговать интернет каждые пять минут и писать результат в журнал. Скрипт выглядит так: переменная result равна результату /ping, затем идёт log info с текстом. Такой скрипт полезен для мониторинга качества канала. Второй механизм — планировщик. Он запускает скрипт по расписанию: например, каждые пять минут, или раз в час, или при загрузке системы. Отдельно стоит политика выполнения: если скрипт упал, нужно ли запускать следующий. Третий механизм — netwatch. Он следит за доступностью узла и при изменении состояния выполняет скрипт. Это основа отказоустойчивости: если пинг до провайдера пропал, переключаем маршрут на резервный канал. Netwatch и планировщик вместе дают полноценный failover. Netwatch следит за основным шлюзом, а по событию down скрипт меняет расстояния маршрутов или поднимает запасной интерфейс.",
       "И четвёртый — REST API. Это HTTP-интерфейс к конфигурации: можно получить JSON с текущими настройками и изменить их обычным HTTP-запросом. Именно так работают Ansible, Terraform-провайдеры, скрипты на Python и системы мониторинга. API работает через сервис api на порту 8728 или через www-интерфейс по HTTPS. Для аутентификации используется обычная учётная запись RouterOS, а транспорт лучше защищать через VPN или ограничение по адресу."
@@ -961,6 +2130,86 @@
         "cmd": "# смотрим живой трафик на порту (остановить — Ctrl+C)\n/tool torch interface=ether2\n\n# записываем трафик в файл для Wireshark\n/tool packet sniffer set file-name=sniff.pcap interface=ether2\n/tool packet sniffer start\n/tool packet sniffer stop\n/tool packet sniffer print\n\n# список файлов на устройстве\n/file print\n/file print where name~\"pcap\""
       }
     ],
+    "steps": [
+      {
+        "title": "Начните с физического уровня",
+        "cmd": "/interface ethernet print\n/interface ethernet monitor ether1 once",
+        "note": "Флаг X — disabled, отсутствие R — нет линка.",
+        "text": "Проверьте порты, скорость, дуплекс и ошибки."
+      },
+      {
+        "title": "Проверьте L2 и ARP",
+        "cmd": "/ip arp print\n/interface bridge port print",
+        "note": "Пустая ARP-таблица при работающих клиентах — верный признак проблемы на втором уровне.",
+        "text": "Видит ли устройство соседей?"
+      },
+      {
+        "title": "Проверьте адреса и маршруты",
+        "cmd": "/ip address print\n/ip route print",
+        "note": "Маршрут по умолчанию должен существовать, иначе наружу не уйти.",
+        "text": "Есть ли адреса и ведут ли маршруты куда надо."
+      },
+      {
+        "title": "Пингуйте по цепочке",
+        "cmd": "/ping 192.168.88.1 count=4\n/ping 203.0.113.9 count=4\n/ping 8.8.8.8 count=4",
+        "note": "Первый оборванный хоп — граница проблемы.",
+        "text": "От себя к шлюзу и дальше."
+      },
+      {
+        "title": "Трассируйте маршрут",
+        "cmd": "/tool traceroute 8.8.8.8 count=1",
+        "note": "Резкие скачки latency в середине пути — признак перегруженного участка.",
+        "text": "Посмотрите, где теряется путь."
+      },
+      {
+        "title": "Снимите трафик при необходимости",
+        "cmd": "/tool packet sniffer set file-name=diag.pcap interface=ether2\n/tool packet sniffer start\n/tool packet sniffer stop",
+        "note": "Снимайте трафик с обеих сторон границы проблемы — так видно, где именно он ломается.",
+        "text": "Запишите pcap и откройте в Wireshark."
+      }
+    ],
+    "cheat": [
+      {
+        "g": "Диагностика",
+        "c": "/interface ethernet monitor ether1 once",
+        "d": "Состояние порта и ошибки"
+      },
+      {
+        "g": "Диагностика",
+        "c": "/ip arp print",
+        "d": "ARP-таблица"
+      },
+      {
+        "g": "Диагностика",
+        "c": "/ping 8.8.8.8 count=4",
+        "d": "Проверка доступности"
+      },
+      {
+        "g": "Диагностика",
+        "c": "/tool traceroute 8.8.8.8 count=1",
+        "d": "Путь до узла"
+      },
+      {
+        "g": "Диагностика",
+        "c": "/tool torch interface=ether2",
+        "d": "Живой трафик на порту"
+      },
+      {
+        "g": "Диагностика",
+        "c": "/tool packet sniffer start",
+        "d": "Запись трафика"
+      },
+      {
+        "g": "Диагностика",
+        "c": "/ip firewall filter print stats",
+        "d": "Счётчики правил"
+      },
+      {
+        "g": "Диагностика",
+        "c": "/log print where topics~\"error\"",
+        "d": "Ошибки в журнале"
+      }
+    ],
     "parts": [
       "Диагностика на RouterOS — это не магия, а метод. Шаг первый: определить, где именно обрывается связь. Шаг второй: понять, на каком уровне: физика, канальный, сетевой или прикладной. Шаг третий: применить нужную утилиту. Начинают всегда с физики. Посмотрите состояние портов: /interface ethernet print. Флаг R значит, что есть линк. Нет R — проблема в кабеле, порту или устройстве на другом конце. Скорость и дуплекс тоже важны: если порт согласовал 100 мегабит по витой паре категории 3, кабель нужно менять. Второй уровень — ARP. Таблица /ip arp показывает, какие MAC-адреса за какими IP сидят. Если ваш компьютер есть в таблице, второй уровень работает. Если нет — проблема в ARP или ниже. Третий уровень — ping. Пинг проверяет не «есть ли интернет», а проходят ли ICMP-пакеты и возвращаются ли ответы. Пингайте по возрастанию: сначала сам интерфейс, потом шлюз, потом первый узел в интернете, потом публичный адрес. Первый, где пинг сорвался, и указывает на проблемный участок. Traceroute показывает путь по hop-ам. В RouterOS есть два режима: обычный и ICMP, а также есть возможность отправлять UDP. Для сетей, где ICMP режется, помогает ping с флагом large или трассировка по TCP. Torch — это аналог wireshark на интерфейсе: показывает, кто и что с какого порта отправляет прямо сейчас. Это лучший инструмент, когда нужно увидеть, кто именно создаёт мусор в сети.",
       "Packet sniffer записывает трафик в файл pcap, который потом открывается в Wireshark. Это тяжёлый, но самый точный инструмент. Его стоит применять на границе проблемы: сначала на интерфейсе, где трафик ещё нормальный, потом там, где он ломается. И не забывайте про счётчики интерфейсов и правил firewall. В них видно ошибки и потери, а также то, сколько пакетов отброшено конкретным правилом. Часто ответ находится именно в счётчиках, а не в логах."
@@ -1015,6 +2264,65 @@
         "cmd": "# PPP-интерфейс для LTE-модема\n/ppp profile add name=lte\n/interface pppoe-client add name=lte1 interface=usb1 user=user password=pass profile=lte default-route-distance=20\n\n# маршрут по умолчанию с большим distance — это резерв\n/ip route add dst-address=0.0.0.0/0 gateway=ether1 distance=1\n\n# переключение по факту отсутствия связи с интернетом\n/tool netwatch add name=wan-check host=8.8.8.8 interval=30s timeout=3s \\\n    down-script={\n        /ip route set [find gateway=ether1] distance=20;\n        /ip route set [find gateway=10.10.10.1] distance=1;\n        :log warning \"Switched to LTE backup\";\n    } up-script={\n        /ip route set [find gateway=ether1] distance=1;\n        /ip route set [find gateway=10.10.10.1] distance=20;\n        :log info \"Primary link restored\";\n    }"
       }
     ],
+    "steps": [
+      {
+        "title": "Определите свой ASN и фильтр",
+        "cmd": "/routing filter add name=accept-ours chain=out rule=\"if (dst in 10.0.0.0/8) { accept } else { reject }\"",
+        "note": "Проверьте фильтр на тестовой площадке: ошибочный reject убьёт вам интернет.",
+        "text": "Фильтр должен анонсировать только ваши сети."
+      },
+      {
+        "title": "Добавьте пира",
+        "cmd": "/routing bgp peer add name=isp1 address=203.0.113.2 remote-as=65001 as=64512 filter-out=accept-ours",
+        "note": "Для сессии с провайдером нужен прямой L3-доступ до адреса пира.",
+        "text": "Укажите адрес, remote-as и свой as."
+      },
+      {
+        "title": "Проверьте сессию",
+        "cmd": "/routing bgp peer print\n/routing bgp instance print",
+        "note": "Если сессия не поднимается, проверьте TCP 179, доступность адреса пира и правила firewall.",
+        "text": "Сессия должна быть established."
+      },
+      {
+        "title": "Подключите LTE как резерв",
+        "cmd": "/interface pppoe-client add name=lte1 interface=usb1 default-route-distance=20",
+        "note": "Проверьте, что модем виден: /interface print.",
+        "text": "PPP-интерфейс с увеличенным distance."
+      },
+      {
+        "title": "Автоматизируйте переключение",
+        "cmd": "/tool netwatch add name=wan-check host=8.8.8.8 interval=30s down-script={...}",
+        "note": "Обязательно проверьте обе ветки: оборвали канал, дождались переключения, вернули канал.",
+        "text": "Netwatch по внешнему адресу с симметричными up/down-скриптами."
+      }
+    ],
+    "cheat": [
+      {
+        "g": "BGP",
+        "c": "/routing bgp peer add name=isp1 address=203.0.113.2 remote-as=65001 as=64512",
+        "d": "Добавить BGP-пира"
+      },
+      {
+        "g": "BGP",
+        "c": "/routing bgp peer print",
+        "d": "Состояние BGP-сессий"
+      },
+      {
+        "g": "BGP",
+        "c": "/routing filter add name=accept-ours chain=out rule=\"if (dst in 10.0.0.0/8) { accept } else { reject }\"",
+        "d": "Фильтр анонсов"
+      },
+      {
+        "g": "BGP",
+        "c": "/routing bgp advertisement print",
+        "d": "Что мы анонсируем"
+      },
+      {
+        "g": "Резерв",
+        "c": "/interface pppoe-client add name=lte1 interface=usb1 default-route-distance=20",
+        "d": "LTE-клиент как резерв"
+      }
+    ],
     "parts": [
       "BGP — это протокол, на котором держится интернет. На MikroTik его используют в двух сценариях: приём полной таблицы маршрутов от провайдера и обмен маршрутами между своими площадками. Полная таблица маршрутов — это около миллиона префиксов. Таблица в памяти устройства при этом не растёт так сильно, как кажется, благодаря оптимизациям, но на слабых устройствах лучше использовать фильтры: только нужные сети, плюс маршрут по умолчанию. Настройка BGP на MikroTik выглядит так: создаётся фильтр, в котором описывается, что принимать и что отдавать. Затем добавляется пир с адресом провайдера, номером автономной системы и этими фильтрами. Главное правило BGP: анонсировать можно только то, что действительно ваше. Провайдеры фильтруют анонсы, и если в вашем фильтре окажется чужая сеть, её просто не примут или сообщат о нарушении. Для связи между своими площадками BGP тоже удобен: площадка анонсирует свои подсети, а вторая их принимает. Преимущество перед статикой — сети добавляются без ручной настройки на каждом маршрутизаторе. Теперь про LTE-резерв. Это очень распространённый сценарий: основной канал — проводной интернет, резервный — LTE-модем в USB. Задача: при падении основного канала автоматически переключиться на LTE.",
       "Схема простая: модем подключается как PPP-интерфейс, ему выдаётся адрес, а маршрут по умолчанию через LTE имеет больший distance, чем у основного канала. Netwatch или проверка link на основном интерфейсе меняют distance при падении. Есть нюанс: LTE-модем может потерять связь, не сообщив об этом. Поэтому проверять лучше не только физический линк, а пинг до внешнего адреса через этот интерфейс. Это надёжнее."
@@ -1063,6 +2371,70 @@
       {
         "title": "RouterOS CLI — финальная проверка",
         "cmd": "/system identity print\n/system clock print\n/system resource print\n/system package update check-for-updates\n\n/ip service print\n/user print\n\n/interface print\n/ip address print\n/ip route print\n/ip dhcp-server print\n/ip firewall filter print stats\n/ip firewall nat print\n\n/queue simple print stats\n/system backup save name=final-check"
+      }
+    ],
+    "steps": [
+      {
+        "title": "Пройдите финальную проверку",
+        "cmd": "/system resource print\n/ip service print\n/ip firewall filter print stats",
+        "note": "Сохраните вывод в файл — это и есть отчёт о готовности.",
+        "text": "Выполните список команд и убедитесь, что всё в порядке."
+      },
+      {
+        "title": "Сделайте и выгрузите бэкап",
+        "cmd": "/system backup save name=final\n/file print\n# выгрузка через Winbox: Files → final.backup → Download",
+        "note": "Проверьте, что файл открывается и в нём есть текущая конфигурация.",
+        "text": "Бэкап должен лежать вне устройства."
+      },
+      {
+        "title": "Проверьте отказоустойчивость",
+        "cmd": "/tool netwatch print\n/log print where message~\"Switched\"",
+        "note": "Потом верните канал и убедитесь в обратном переключении.",
+        "text": "Отключите основной канал и убедитесь, что трафик идёт через резерв."
+      },
+      {
+        "title": "Опишите сеть",
+        "cmd": "docs/ — храните рядом с конфигурацией в git",
+        "note": "Хорошая документация экономит часы при любом инциденте.",
+        "text": "Схема, подсети, таблица адресов, точки входа."
+      },
+      {
+        "title": "Сдайте себе экзамен",
+        "cmd": "Раздел «Итоговый экзамен»",
+        "note": "Ниже 70% — вернитесь к урокам, где были ошибки.",
+        "text": "Пройдите итоговый тест в приложении."
+      }
+    ],
+    "cheat": [
+      {
+        "g": "Система",
+        "c": "/system clock set time-zone-name=Europe/Moscow",
+        "d": "Часовой пояс"
+      },
+      {
+        "g": "Система",
+        "c": "/system ntp client set enabled=yes",
+        "d": "Включить NTP"
+      },
+      {
+        "g": "Система",
+        "c": "/system backup save name=backup",
+        "d": "Создать бэкап"
+      },
+      {
+        "g": "Система",
+        "c": "/system package update check-for-updates",
+        "d": "Проверить обновления"
+      },
+      {
+        "g": "Система",
+        "c": "/system reboot",
+        "d": "Перезагрузка"
+      },
+      {
+        "g": "Система",
+        "c": "/system log print",
+        "d": "Журнал"
       }
     ],
     "parts": [
@@ -1117,6 +2489,55 @@
       {
         "title": "Docker — виртуальная сеть из двух роутеров",
         "cmd": "# своя сеть для лаборатории\ndocker network create mik-net\n\n# два маршрутизатора\ndocker run -d --name mik1 --network mik-net --cap-add NET_ADMIN mikrotik/routeros:latest\ndocker run -d --name mik2 --network mik-net --cap-add NET_ADMIN mikrotik/routeros:latest\n\n# адреса контейнеров\ndocker inspect -f '{{.NetworkSettings.Networks.mik_net.IPAddress}}' mik1"
+      }
+    ],
+    "steps": [
+      {
+        "title": "Поднимите стенд",
+        "cmd": "docker run -d --name mik-lab --cap-add NET_ADMIN -p 8728:8728 mikrotik/routeros:latest",
+        "note": "Если Docker недоступен — используйте CHR OVA в VirtualBox.",
+        "text": "Docker + CHR — самый быстрый путь к практике."
+      },
+      {
+        "title": "Пройдите уроки 1-6 на стенде",
+        "cmd": "Winbox → Neighbors или подключение по адресу контейнера",
+        "note": "Записывайте команды в конспект: так формируется ваш рабочий справочник.",
+        "text": "Каждый урок — с настройкой на реальном устройстве."
+      },
+      {
+        "title": "Стройте сеть по плану",
+        "cmd": "/interface wireguard add name=wg0",
+        "note": "Проверяйте маршрутизацию между площадками командой /routing route check.",
+        "text": "Два роутера, туннель между ними, маршрутизация."
+      },
+      {
+        "title": "Сделайте финальный проект",
+        "cmd": "Сверяйтесь с чек-листом урока l20",
+        "note": "Не пытайтесь сделать всё сразу — внедряйте по блокам, проверяя каждый.",
+        "text": "Всё вместе: firewall, NAT, очереди, Wi-Fi, VPN, мониторинг."
+      },
+      {
+        "title": "Сдайте итоговый экзамен",
+        "cmd": "Раздел «Итоговый экзамен»",
+        "note": "Ниже 70% — вернитесь к урокам с ошибками и повторите.",
+        "text": "20 вопросов по всему курсу."
+      }
+    ],
+    "cheat": [
+      {
+        "g": "Лаборатория",
+        "c": "docker run -d --name mik-lab --cap-add NET_ADMIN -p 8728:8728 mikrotik/routeros:latest",
+        "d": "Поднять CHR в Docker"
+      },
+      {
+        "g": "Лаборатория",
+        "c": "docker network create mik-net",
+        "d": "Создать сеть для стенда"
+      },
+      {
+        "g": "Лаборатория",
+        "c": "docker inspect -f \"{{.NetworkSettings.Networks.mik_net.IPAddress}}\" mik1",
+        "d": "Узнать IP контейнера"
       }
     ],
     "parts": [

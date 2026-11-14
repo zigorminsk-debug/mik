@@ -40,6 +40,17 @@ for (const id of order) {
 
   const ch = chapters.find((c) => (c.lessons || []).includes(id)) || {};
 
+  // Шаги урока: у каждого есть команда RouterOS — по ней строится экран Winbox
+  const steps = (l.steps || []).map((s) => ({
+    title: s.title || '',
+    cmd: s.cmd || '',
+    note: s.note || '',
+    text: s.text || ''
+  }));
+
+  // Шпаргалка: группы = разделы RouterOS, команды = конкретные вкладки
+  const cheat = (l.cheat || []).map((c) => ({ g: c.g || '', c: c.c || '', d: c.d || '' }));
+
   out.push({
     id,
     title: l.title,
@@ -47,6 +58,8 @@ for (const id of order) {
     level: l.level,
     paragraphs,
     codes,
+    steps,
+    cheat,
     parts,
     partTexts: parts.map((p) => p.split('\n').join(' '))
   });
@@ -55,4 +68,4 @@ for (const id of order) {
 fs.mkdirSync('media', { recursive: true });
 fs.writeFileSync('media/narration.json', JSON.stringify(out, null, 2), 'utf8');
 
-console.log(`Уроков: ${out.length}, частей озвучки: ${out.reduce((a, x) => a + x.parts.length, 0)}, CLI-слайдов: ${out.reduce((a, x) => a + x.codes.length, 0)}`);
+console.log(`Уроков: ${out.length}, частей озвучки: ${out.reduce((a, x) => a + x.parts.length, 0)}, CLI-слайдов: ${out.reduce((a, x) => a + x.codes.length, 0)}, шагов: ${out.reduce((a, x) => a + x.steps.length, 0)}`);

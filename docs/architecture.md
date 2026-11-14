@@ -63,7 +63,7 @@ D.lessons['l07'] = {
 
 ### Размер APK
 
-Видео — основной вес (~36 МБ на 21 ролик). Если нужен «лёгкий» вариант,
+Видео — основной вес (~9 МБ на 21 ролик). Если нужен «лёгкий» вариант,
 достаточно исключить `assets/media/video` из `syncWebAssets` и оставить текстовый курс.
 
 ## Сборка медиа
@@ -73,10 +73,14 @@ media/narration.json  ← node scripts/extract-narration.mjs (тексты ур�
         │
         ├── media/audio/<id>-p1.mp3 … (озвучка)
         │
-        └── scripts/make-videos.py → слайды Pillow → ffmpeg → web/assets/media/video/<id>.mp4
+        ├── scripts/routeros_ui.py  → интерфейс RouterOS: дерево Winbox, таблицы, терминал
+        └── scripts/make-videos.py → экраны Pillow → ffmpeg → web/assets/media/video/<id>.mp4
 ```
 
-Слайды: титул → абзацы объяснения → слайды с реальными CLI-командами → итог.
+Экраны: титул → для каждого шага урока экран Winbox 7 (дерево разделов слева,
+таблица справа, активная вкладка подсвечена) и экран терминала с командой и
+выводом → итог с командами урока. Разбор пути команды в раздел Winbox и
+таблицы разделов живут в `scripts/routeros_ui.py`.
 Кодек: H.264 baseline, yuv420p, AAC 96 кбит/с, `+faststart` — играется в WebView на Android 7+.
 
 ## CI/CD
