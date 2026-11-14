@@ -145,7 +145,7 @@ jobs:
                 tail -70 /tmp/gradle-debug.log
                 echo '```'
               } > /tmp/report.md
-              gh api --method POST "/repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+              gh api --method POST "/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments" \
                 -f body="$(cat /tmp/report.md)" || true
             fi
             exit 1
@@ -174,7 +174,7 @@ jobs:
                 tail -70 /tmp/gradle-release.log
                 echo '```'
               } > /tmp/report.md
-              gh api --method POST "/repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+              gh api --method POST "/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments" \
                 -f body="$(cat /tmp/report.md)" || true
             fi
             exit 1
@@ -205,6 +205,15 @@ jobs:
           name: mik-academy-apk
           path: android/artifacts/*.apk
           if-no-files-found: warn
+
+      - name: Выгрузить логи сборки
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            /tmp/gradle-*.log
+          if-no-files-found: ignore
 
       - name: Опубликовать релиз
         if: startsWith(github.ref, 'refs/tags/v')
