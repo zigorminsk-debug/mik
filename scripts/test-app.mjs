@@ -149,10 +149,30 @@ check('Экзамен отрисован', window.document.querySelector('#exam-
 window.document.querySelector('#exam-start').dispatchEvent(new window.Event('click'));
 await wait(200);
 check('Экзамен: вопрос начался', window.document.querySelectorAll('.exam-card .q').length === 1);
+check('Экзамен: ответ нельзя пропустить', window.document.querySelector('#exam-next').disabled === true);
 const eopt = window.document.querySelector('.exam-card .opt');
 eopt.dispatchEvent(new window.Event('click', { bubbles: true }));
 await wait(80);
-check('Экзамен: ответ засчитан', window.document.querySelector('.exam-card .explain').hidden === false);
+check('Экзамен: выбор ответа включает «дальше»', window.document.querySelector('#exam-next').disabled === false);
+check('Экзамен: правильный ответ не показывается сразу', window.document.querySelector('.exam-card .explain') === null);
+window.document.querySelector('#exam-next').dispatchEvent(new window.Event('click', { bubbles: true }));
+await wait(120);
+check('Экзамен: переход к следующему вопросу', window.document.querySelectorAll('.exam-card .q').length === 1);
+
+// проходим экзамен до конца, отвечая верно на первый вопрос (по данным не проверяем)
+for (let k = 0; k < 40; k++) {
+  const opts = window.document.querySelectorAll('.exam-card .opt');
+  if (!opts.length) break;
+  opts[0].dispatchEvent(new window.Event('click', { bubbles: true }));
+  const next = window.document.querySelector('#exam-next');
+  if (!next) break;
+  next.dispatchEvent(new window.Event('click', { bubbles: true }));
+  await wait(20);
+}
+await wait(200);
+check('Экзамен: результат показан', window.document.querySelector('.exam-badge') !== null);
+check('Экзамен: разбор ошибок есть', window.document.querySelectorAll('.exam-card .explain').length >= 0);
+check('Экзамен: результат сохранён', !!JSON.parse(window.localStorage.getItem('mik.state.v1') || '{}').quiz?.__exam);
 
 // 11. тема
 window.document.querySelector('#btn-theme').dispatchEvent(new window.Event('click'));

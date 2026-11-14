@@ -97,6 +97,7 @@
           <a class="btn" href="#/lesson/${ORDER[0]}">Начать с первого урока →</a>
           <a class="btn ghost" href="#/cheat">📘 Шпаргалка команд</a>
           <a class="btn ghost" href="#/exam">🎓 Итоговый экзамен</a>
+          <a class="btn ghost" href="https://github.com/zigorminsk-debug/mik/releases" target="_blank" rel="noopener">⬇ Скачать Android-версию</a>
         </div>
         <div class="badge-row" style="margin-top:18px">
           <span class="badge">RouterOS 7.x</span><span class="badge">Winbox / CLI / API</span>
@@ -374,46 +375,62 @@
     function step() {
       if (i >= pick.length) {
         state.quiz.__exam = { correct: correct, total: pick.length, at: Date.now() }; save();
-        showExamResult(pick, correct, pick.length);
+        showExamResult(pick, correct, pick.length, answers);
         return;
       }
       const item = pick[i];
+      // ответ фиксируется только по кнопке «Дальше»: правильный вариант
+      // не показывается сразу, иначе экзамен ничего не проверяет
+      let chosen = null;
       box.innerHTML = `
         <div class="q" style="margin-top:16px">
           <div class="muted" style="font-size:12.5px">Вопрос ${i + 1} из ${pick.length} · ${R.esc(item.from)}</div>
           <div class="q-text" style="margin-top:6px">${R.inline(item.q.q)}</div>
-          <div class="opts">${item.q.o.map((o, oi) => `<button class="opt" data-o="${oi}"><span class="mk">${'АБВГД'[oi]}</span><span>${R.inline(o)}</span></button>`).join('')}</div>
-          <div class="explain" hidden></div>
-          <button class="btn" id="exam-next" style="margin-top:12px">${i === pick.length - 1 ? 'Завершить' : 'Следующий вопрос'}</button>
+          <div class="opts">${item.q.o.map((o, oi) => `<button type="button" class="opt" data-o="${oi}" role="radio" aria-checked="false"><span class="mk">${'АБВГД'[oi]}</span><span>${R.inline(o)}</span></button>`).join('')}</div>
+          <button class="btn" id="exam-next" style="margin-top:12px" disabled>${i === pick.length - 1 ? 'Завершить' : 'Следующий вопрос'}</button>
         </div>`;
       $$('.opt', box).forEach((o) => o.addEventListener('click', () => {
-        $$('.opt', box).forEach((x) => x.classList.remove('sel'));
+        $$('.opt', box).forEach((x) => {
+          x.classList.remove('sel');
+          x.setAttribute('aria-checked', 'false');
+        });
         o.classList.add('sel');
-        const ans = item.q.a;
-        const ex = $('.explain', box);
-        ex.hidden = false;
-        ex.innerHTML = '<b>Ответ: ' + 'АБВГД'[ans] + '.</b> ' + R.inline(item.q.why || '');
-        if (parseInt(o.dataset.o, 10) === ans) correct++;
+        o.setAttribute('aria-checked', 'true');
+        chosen = parseInt(o.dataset.o, 10);
         $('#exam-next').disabled = false;
       }));
       const nb = $('#exam-next');
       nb.disabled = true;
-      nb.addEventListener('click', () => { i++; step(); });
+      nb.addEventListener('click', () => {
+        if (chosen === null) return;
+        const ans = item.q.a;
+        if (chosen === ans) correct++;
+        answers.push({ item: item, chosen: chosen, ans: ans });
+        i++;
+        step();
+      });
     }
     step();
   }
 
-  function showExamResult(pick, correct, total) {
+  function showExamResult(pick, correct, total, answers) {
     const pct = Math.round((correct / total) * 100);
     const passed = pct >= 70;
     const box = $('#exam-res');
     if (!box) return;
+    const wrong = (answers || []).filter((a) => a.chosen !== a.ans);
     box.innerHTML = `
       <div class="exam-badge" style="${passed ? '' : 'border-color:rgba(210,153,34,.4);background:rgba(210,153,34,.08)'}">
         <b>${passed ? '🎉 Экзамен сдан' : '📖 Ещё немного практики'}</b>
         <div class="exam-score" style="margin:6px 0">${correct} / ${total}</div>
         <div class="muted">${pct}% — ${passed ? 'отличный результат, материал усвоен' : 'нужно 70%, повторите уроки со слабыми местами'}</div>
-      </div>`;
+      </div>
+      ${wrong.length ? `<div class="sec-title" style="margin-top:22px">Разбор ошибок (${wrong.length})</div>
+        ${wrong.map((w) => `<div class="q" style="margin-top:12px">
+          <div class="muted" style="font-size:12.5px">${R.esc(w.item.from)}</div>
+          <div class="q-text" style="margin-top:6px">${R.inline(w.item.q.q)}</div>
+          <div class="explain" style="margin-top:10px"><b>Правильный ответ: ${'АБВГД'[w.ans]}.</b> ${R.inline(w.item.q.why || '')}</div>
+        </div>`).join('')}` : ''}`;
   }
 
   /* ---------------- поиск ---------------- */
