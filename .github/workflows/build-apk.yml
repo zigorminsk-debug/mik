@@ -241,6 +241,27 @@ jobs:
           path: android/artifacts/*.apk
           if-no-files-found: warn
 
+      - name: Проверить подпись debug APK
+        # Отладочный ключ должен оставаться прежним, иначе новая сборка
+        # не установится поверх предыдущей.
+        run: |
+          set -e
+          APK=$(ls -1 android/app/build/outputs/apk/debug/*.apk | head -1)
+          EXPECT=$(grep '^cert_sha256=' android/keystore/mik-debug.properties | cut -d= -f2)
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | tail -1)
+          ACTUAL=$("$APKSIGNER" verify --print-certs "$APK" | grep -i "SHA-256 digest" | head -1 | awk '{print $3}')
+          {
+            echo "### Подпись debug APK"
+            echo ""
+            echo "- ожидаемый отпечаток: \`$EXPECT\`"
+            echo "- фактический отпечаток: \`$ACTUAL\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$EXPECT" != "$ACTUAL" ]; then
+            echo "::error::Отладочный ключ изменился ($ACTUAL != $EXPECT) — обновления поверх прежней сборки не установятся"
+            exit 1
+          fi
+          echo "Отладочный ключ не изменился — обновление поверх прежней сборки возможно"
+
       - name: Загрузить debug APK
         uses: actions/upload-artifact@v4
         with:
