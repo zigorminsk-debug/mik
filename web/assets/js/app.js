@@ -17,7 +17,7 @@
 
   /* ---------------- состояние ---------------- */
   const KEY = 'mik.state.v1';
-  const defState = { checks: {}, quiz: {}, theme: 'dark', bigtext: 0, last: null };
+  const defState = { checks: {}, quiz: {}, theme: 'dark', bigtext: 0, fs: 1, last: null };
 
   /* localStorage может быть недоступен (file://, приватный режим) — работаем без него */
   const LS = {
@@ -34,14 +34,35 @@
   function save() { LS.set(KEY, JSON.stringify(state)); }
   window.MIK = { state: state, save: save, DATA: DATA, ORDER: ORDER };
 
-  /* ---------------- тема ---------------- */
+  /* ---------------- тема и размер шрифта ---------------- */
+  const FS_LABEL = { 1: 'А', 2: 'А<sup>+</sup>', 3: 'А<sup>++</sup>' };
+  const FS_TITLE = { 1: 'Шрифт: обычный', 2: 'Шрифт: крупный', 3: 'Шрифт: очень крупный' };
+
   function applyTheme() {
     document.documentElement.setAttribute('data-theme', state.theme || 'dark');
     document.body.setAttribute('data-bigtext', state.bigtext ? '1' : '0');
     const m = $('meta[name=theme-color]');
     if (m) m.setAttribute('content', state.theme === 'light' ? '#f4f6fa' : '#0d1117');
+    applyFontScale();
   }
-  applyTheme();
+
+  /* Масштаб текста: 1 — обычный, 2 — крупный, 3 — очень крупный.
+     Значение хранится в состоянии и переживает перезапуск приложения. */
+  function applyFontScale() {
+    let n = parseInt(state.fs, 10);
+    if (!(n >= 1 && n <= 3)) n = state.bigtext ? 2 : 1;
+    state.fs = n;
+    document.documentElement.setAttribute('data-fs', String(n));
+    const lbl = $('#fs-label');
+    if (lbl) lbl.innerHTML = FS_LABEL[n];
+    const btn = $('#btn-fs');
+    if (btn) {
+      btn.setAttribute('aria-pressed', n > 1 ? 'true' : 'false');
+      btn.setAttribute('title', FS_TITLE[n]);
+      btn.setAttribute('aria-label', FS_TITLE[n]);
+    }
+  }
+  applyFontScale();
 
   /* ---------------- sidebar ---------------- */
   function buildSidebar() {
@@ -555,6 +576,13 @@
     });
     $('#btn-theme').addEventListener('click', () => {
       state.theme = state.theme === 'light' ? 'dark' : 'light'; save(); applyTheme();
+    });
+
+    // размер шрифта: обычный -> крупный -> очень крупный -> обычный
+    $('#btn-fs').addEventListener('click', () => {
+      state.fs = (parseInt(state.fs, 10) || 1) % 3 + 1;
+      save(); applyFontScale();
+      toast('Размер шрифта: ' + (state.fs === 1 ? 'обычный' : state.fs === 2 ? 'крупный' : 'очень крупный'));
     });
 
     document.addEventListener('keydown', (e) => {

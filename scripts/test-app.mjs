@@ -192,6 +192,38 @@ window.document.querySelector('#btn-theme').dispatchEvent(new window.Event('clic
 await wait(60);
 check('Тема переключается', window.document.documentElement.getAttribute('data-theme') === 'light');
 
+// 11a. регулировка шрифта
+const fsBtn = window.document.querySelector('#btn-fs');
+check('Кнопка размера шрифта есть', fsBtn !== null);
+fsBtn.dispatchEvent(new window.Event('click', { bubbles: true }));
+await wait(60);
+check('Шрифт увеличивается', window.document.documentElement.getAttribute('data-fs') === '2',
+  window.document.documentElement.getAttribute('data-fs'));
+fsBtn.dispatchEvent(new window.Event('click', { bubbles: true }));
+await wait(60);
+check('Шрифт увеличивается ещё раз', window.document.documentElement.getAttribute('data-fs') === '3');
+check('Метка шрифта обновлена', window.document.querySelector('#fs-label').textContent.trim() === 'А++',
+  window.document.querySelector('#fs-label').textContent.trim());
+fsBtn.dispatchEvent(new window.Event('click', { bubbles: true }));
+await wait(60);
+check('Шрифт возвращается к обычному', window.document.documentElement.getAttribute('data-fs') === '1');
+fsBtn.dispatchEvent(new window.Event('click', { bubbles: true }));
+await wait(60);
+check('Размер шрифта сохраняется', JSON.parse(window.localStorage.getItem('mik.state.v1') || '{}').fs === 2);
+
+// 11b. аудит CSS: интерфейс не должен вылезать за экран
+{
+  const css = fs.readFileSync(path.join(root, 'assets/css/app.css'), 'utf8');
+  const inlineCode = (css.match(/\.prose code:not\(pre code\)\{[^}]*\}/) || [''])[0];
+  check('CSS: длинные команды переносятся, а не растягивают страницу',
+    !/white-space\s*:\s*nowrap/.test(inlineCode) && /overflow-wrap/.test(inlineCode));
+  const cheatCode = (css.match(/\.cheat-item code\{[^}]*\}/) || [''])[0];
+  check('CSS: команды в шпаргалке переносятся', !/white-space\s*:\s*nowrap/.test(cheatCode));
+  check('CSS: колонки урока умеют сжиматься', /\.lesson-grid>\*\{[^}]*min-width:0/.test(css));
+  check('CSS: скрытые элементы не показываются', /\[hidden\]\{display:none !important\}/.test(css));
+  check('CSS: масштаб шрифта задан', /html\[data-fs="3"\]/.test(css));
+}
+
 // 12. мобильный сайдбар
 check('Кнопка меню есть', window.document.querySelector('#btn-menu') !== null);
 
