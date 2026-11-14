@@ -49,15 +49,20 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
-  // Видео кэшируем отдельно и отдаём из кэша
+  // Видео: запросы с Range (перемотка) не кэшируем и отдаём как есть,
+  // иначе медиаплеер получает полный файл вместо запрошенного куска.
   if (url.pathname.includes('/assets/media/video/')) {
+    if (req.headers.has('range')) {
+      e.respondWith(fetch(req));
+      return;
+    }
     e.respondWith(
       caches.open(MEDIA).then(async (c) => {
         const hit = await c.match(req);
         if (hit) return hit;
         try {
           const res = await fetch(req);
-          if (res.ok) c.put(req, res.clone());
+          if (res.ok) c.put(req, res.clone()).catch(() => {});
           return res;
         } catch (err) {
           return new Response('', { status: 504 });

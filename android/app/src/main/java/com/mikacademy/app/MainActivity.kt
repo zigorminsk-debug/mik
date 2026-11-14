@@ -2,6 +2,7 @@ package com.mikacademy.app
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.ViewGroup
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -9,6 +10,8 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.webkit.ServiceWorkerClientCompat
+import androidx.webkit.ServiceWorkerController
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewClientCompat
 
@@ -33,6 +36,22 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Запросы service worker идут мимо WebViewClient, поэтому их нужно
+        // перенаправить в загрузчик ресурсов отдельно. Без этого видео и другие
+        // файлы из assets уходили бы в сеть, где домена appassets.androidplatform.net
+        // не существует, и не воспроизводились.
+        try {
+            ServiceWorkerController.getInstance().setServiceWorkerClient(
+                object : ServiceWorkerClientCompat() {
+                    override fun shouldInterceptRequest(
+                        request: WebResourceRequest
+                    ): WebResourceResponse? = assetLoader.shouldInterceptRequest(request.url)
+                }
+            )
+        } catch (e: Throwable) {
+            Log.w(TAG, "ServiceWorkerClient недоступен: ${e.message}")
+        }
 
         // Аппаратная кнопка «Назад» возвращает по истории веб-приложения
         // (в нём hash-роутинг), а не выбрасывает пользователя из урока.
@@ -126,6 +145,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
+        private const val TAG = "MikAcademy"
         private const val APP_DOMAIN = "appassets.androidplatform.net"
         private const val START_URL = "https://$APP_DOMAIN/assets/www/index.html"
     }

@@ -125,6 +125,8 @@ mik/
   текст, блоки кода, шаги, типичные ошибки, чек-лист, вопросы с пояснениями, записи для шпаргалки.
 * **Видео** — генерируются скриптом `scripts/make-videos.py`: слайды рисуются Pillow,
   озвучка синтезируется, всё собирается ffmpeg в mp4 (H.264 + AAC, совместимо с Android WebView).
+* **Видео** — лежат в assets и отдаются через `WebViewAssetLoader`; запросы service worker
+  перенаправляются в тот же загрузчик (иначе медиаплеер уходит в сеть, где нет такого домена).
 * **Android** — `MainActivity` отдаёт `web/` через `WebViewAssetLoader` по адресу
   `https://appassets.androidplatform.net/...`. Это безопасный https-origin, поэтому внутри
   работают service worker, localStorage и офлайн-режим.

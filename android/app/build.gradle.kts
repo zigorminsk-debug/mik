@@ -40,6 +40,7 @@ android {
     tasks.named("preBuild") { dependsOn(syncWebAssets) }
 
     signingConfigs {
+        // Релизный ключ приходит из секретов GitHub (Actions secrets).
         if (keystorePathEnv != null && storePasswordEnv != null && keyAliasEnv != null) {
             create("release") {
                 storeFile = rootProject.file(keystorePathEnv)
@@ -52,6 +53,21 @@ android {
                 enableV3Signing = true
             }
         }
+
+        // Отладочный ключ лежит в репозитории: он ничего не защищает, но постоянный,
+        // поэтому отладочные сборки устанавливаются поверх предыдущих.
+        create("debugStable") {
+            val props = java.util.Properties()
+            val propsFile = rootProject.file("keystore/mik-debug.properties")
+            if (propsFile.exists()) {
+                propsFile.inputStream().use { props.load(it) }
+            }
+            storeFile = rootProject.file("keystore/mik-debug.p12")
+            storePassword = props.getProperty("store_password", "mikdebug")
+            keyAlias = props.getProperty("key_alias", "mikdebug")
+            keyPassword = props.getProperty("key_password", props.getProperty("store_password", "mikdebug"))
+            storeType = "pkcs12"
+        }
     }
 
     buildTypes {
@@ -59,6 +75,7 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("debugStable")
         }
         release {
             isMinifyEnabled = false

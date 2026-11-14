@@ -284,10 +284,33 @@
     const v = document.getElementById('vid-' + id);
     const vb = $('[data-vbtn="' + id + '"]');
     if (v && vb) {
-      vb.addEventListener('click', () => { v.play(); vb.classList.add('hide'); });
-      v.addEventListener('play', () => vb.classList.add('hide'));
+      const verr = document.getElementById('verr-' + id);
+      const playVideo = () => {
+        const p = v.play();
+        if (p && typeof p.catch === 'function') {
+          p.catch(() => {
+            if (verr) {
+              verr.hidden = false;
+              verr.textContent = 'Не удалось запустить видео. Нажмите ▶ в панели плеера или перезапустите приложение.';
+            }
+          });
+        }
+      };
+      vb.addEventListener('click', playVideo);
+      v.addEventListener('play', () => { vb.classList.add('hide'); if (verr) verr.hidden = true; });
       v.addEventListener('pause', () => { if (!v.ended) vb.classList.remove('hide'); });
       v.addEventListener('ended', () => vb.classList.add('hide'));
+      v.addEventListener('error', () => {
+        vb.classList.add('hide');
+        if (verr) {
+          verr.hidden = false;
+          verr.textContent = 'Видео не загрузилось: файл повреждён или недоступен. Текст урока ниже содержит тот же материал.';
+        }
+      });
+      // если видео не стартует автоматически — показываем кнопку play
+      v.addEventListener('loadedmetadata', () => {
+        if (v.currentTime === 0 && v.paused) vb.classList.remove('hide');
+      });
     }
     const tb = $('[data-transcript="' + id + '"]');
     if (tb) tb.addEventListener('click', () => {

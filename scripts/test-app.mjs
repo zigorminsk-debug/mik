@@ -88,6 +88,13 @@ check('Урок: есть блоки команд', window.document.querySelecto
 check('Урок: есть чек-лист', window.document.querySelectorAll('.checklist .ck').length >= 5);
 check('Урок: есть тест', window.document.querySelectorAll('.quiz .q').length >= 4);
 check('Урок: есть видео', window.document.querySelectorAll('#lesson-body video').length === 1);
+check('Урок: у видео есть источник', (window.document.querySelector('#lesson-body video source') || {}).src
+  ? /assets\/media\/video\/l\d+\.mp4$/.test(window.document.querySelector('#lesson-body video source').getAttribute('src'))
+  : false,
+  (window.document.querySelector('#lesson-body video source') || {}).getAttribute
+    ? window.document.querySelector('#lesson-body video source').getAttribute('src') : 'нет');
+check('Урок: кнопка play привязана к видео', window.document.querySelector('[data-vbtn="l05"]') !== null);
+check('Урок: есть блок сообщения об ошибке видео', window.document.querySelector('#verr-l05') !== null);
 check('Урок: текст урока открыт по умолчанию', !!window.document.querySelector('.transcript.open'));
 check('Урок: текст урока содержит абзацы', window.document.querySelectorAll('.transcript p').length >= 4,
   window.document.querySelectorAll('.transcript p').length + ' абзацев');

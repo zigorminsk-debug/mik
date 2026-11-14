@@ -3,7 +3,11 @@
 *.keystore
 *.p12
 *.p12.b64
-android/keystore/
+android/keystore/*
+# отладочный ключ — намеренно в репозитории: он ничего не защищает,
+# но позволяет обновлять отладочные сборки поверх предыдущих
+!android/keystore/mik-debug.p12
+!android/keystore/mik-debug.properties
 android/local.properties
 .secrets/
 .env

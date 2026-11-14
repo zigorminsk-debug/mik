@@ -72,6 +72,7 @@
         Ваш браузер не поддерживает видео.
       </video>
       <div class="vbtn" data-vbtn="${esc(lid)}"><span><svg viewBox="0 0 24 24" width="30" height="30"><path d="M8 5v14l11-7z" fill="#fff"/></svg></span></div>
+      <div class="video-err" id="verr-${esc(lid)}" hidden></div>
       <div class="video-cap"><span>${esc(lesson.videoCap || 'Поясняющее видео к уроку')}</span></div>
     </div>
     ${t ? `<section class="transcript open" id="tr-${esc(lid)}">
