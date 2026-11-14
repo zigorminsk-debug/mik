@@ -277,6 +277,40 @@ jobs:
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: warn
 
+      - name: Проверить опубликованный APK
+        # Скачиваем файл из релиса обратно и проверяем его целостность:
+        # так видно, что доехало до пользователя именно то, что собрано.
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          rm -rf /tmp/check && mkdir -p /tmp/check && cd /tmp/check
+          ASSET=""
+          for f in mik-academy.apk mik-academy-debug.apk; do
+            if gh release download apk-latest --pattern "$f" --dir . 2>/dev/null; then
+              ASSET="$f"
+              break
+            fi
+          done
+          if [ -z "$ASSET" ]; then
+            echo "::warning::Не удалось скачать опубликованный APK для проверки"
+            exit 0
+          fi
+          echo "Проверяем $ASSET ($(du -h "$ASSET" | cut -f1))"
+          unzip -tq "$ASSET" > /dev/null && echo "ZIP: целостность архива в порядке"
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | tail -1)
+          "$APKSIGNER" verify --verbose --print-certs "$ASSET" | head -12
+          sha256sum "$ASSET" | awk '{print $1}' > "$ASSET.sha256"
+          gh release upload apk-latest "$ASSET.sha256" --clobber
+          {
+            echo "### Опубликованный APK"
+            echo ""
+            echo "- файл: \`$ASSET\`"
+            echo "- размер: $(du -h "$ASSET" | cut -f1)"
+            echo "- SHA-256: \`$(cat "$ASSET.sha256")\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Выгрузить логи сборки
         if: always()
         uses: actions/upload-artifact@v4
