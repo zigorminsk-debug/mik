@@ -9,7 +9,7 @@
 │  web/  ──► build-apk.yml  │───────►│  MikAcademy.apk (подписан)   │
 │         (копия в assets)  │        │    └─ MainActivity.kt         │
 │                           │        │         └─ WebViewAssetLoader│
-│  ветка signing-key ────────┼───────►│              └─ web/ (offline)│
+│  секреты Actions ─────────┼───────►│              └─ web/ (offline)│
 │  (постоянный ключ)        │        │                              │
 └───────────────────────────┘        └──────────────────────────────┘
 ```
@@ -85,6 +85,8 @@ media/narration.json  ← node scripts/extract-narration.mjs (тексты ур�
 |---|---|
 | `build-apk.yml` | Валидация данных → debug APK → подписанный release APK → проверка подписи → артефакты; при теге `v*` — релиз |
 | `pages.yml` | Публикация `web/` на GitHub Pages |
+| `ci.yml` | Проверка данных курса и дымовой тест веб-приложения (jsdom) |
 
-Ключ подписи: секреты репозитория → ветка `signing-key` → только debug-сборка.
+Ключ подписи: только секреты репозитория (`ANDROID_KEYSTORE_BASE64` и др.).
+Если их нет — собирается лишь debug-APK, release пропускается.
 Подробности — в [signing.md](signing.md).

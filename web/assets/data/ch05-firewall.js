@@ -102,7 +102,7 @@
       'Таблица raw стоит выше всех и работает до подсчёта соединений. Это даёт две возможности. Первая — быстрый drop нежелательного трафика без нагрузки на conntrack. Вторая — маркировка пакетов, которые нужно пропустить через mangle без учёта состояния, например для policy routing.',
       'Для защиты от DoS есть специальные механизмы. Ограничение числа соединений на адрес: если клиент открывает тысячи соединений, он забанен. Ограничение частоты пакетов: syn flood отсекается. Это встроенные средства, и они работают лучше, чем самописные правила.',
       'Layer7-фильтрация позволяет смотреть внутрь протокола: регулярные выражения по HTTP-заголовкам, редиректы на другой порт, ограничение скорости соединений. Powerful, но тяжёлый: каждое правило нагружает процессор, поэтому применяйте его точечно.',
-      'И последнее: не забывайте raw в схемах с hairpin и policy routing. Маркировка должна применяться до принятия решения о маршрутизации, а соединения, которые вы маркируете, должны участвовать в conntrack. Поэтому mangle с action=mark-routing ставится в raw, а не в mangle.'
+      'И последнее: не забывайте raw в схемах с hairpin и policy routing. Маркировка для policy routing должна применяться до принятия решения о маршрутизации, а соединения, которые вы маркируете, должны участвовать в conntrack. Поэтому action=mark-routing ставится в raw, а не в mangle.'
     ],
     blocks: [
       { t: 'h', x: 'Mangle: что умеет' },
@@ -113,7 +113,7 @@
         '**set-dscp** — приоритет для QoS у провайдера.',
         '**change-mss / change-dscp** — тюнинг TCP MSS для туннелей.'
       ] },
-      { t: 'code', ttl: 'RouterOS CLI — маркировка', x: '# маркируем гостевую сеть\n/ip firewall mangle add chain=prerouting src-address=192.168.90.0/24 action=mark-routing new-routing-mark=guest\n\n# метка пакета для очередей\n/ip firewall mangle add chain=prerouting src-address=192.168.90.0/24 action=mark-packet new-packet-mark=guest-pkt\n\n# метка соединения\n/ip firewall mangle add chain=prerouting src-address=192.168.90.0/24 action=mark-connection new-connection-mark=guest-conn\n\n# для policy routing маркировка делается в raw, до conntrack\n/ip firewall raw add chain=prerouting src-address=192.168.90.0/24 action=mark-routing new-routing-mark=guest', note: 'Ошибка номер один: mark-routing в таблице mangle не сработает для маршрутизации. Для этого используют raw.' },
+      { t: 'code', ttl: 'RouterOS CLI — маркировка', x: '# метка пакета для очередей\n/ip firewall mangle add chain=prerouting src-address=192.168.90.0/24 action=mark-packet new-packet-mark=guest-pkt\n\n# метка соединения\n/ip firewall mangle add chain=prerouting src-address=192.168.90.0/24 action=mark-connection new-connection-mark=guest-conn\n\n# для policy routing маркировка делается в raw, до conntrack\n/ip firewall raw add chain=prerouting src-address=192.168.90.0/24 action=mark-routing new-routing-mark=guest', note: 'Ошибка номер один: mark-routing в таблице mangle не сработает для маршрутизации. Для этого используют raw.' },
       { t: 'note', k: 'info', ttl: 'Mangle или raw — mark-routing', x: 'RouterOS применяет маркировку маршрутизации только на цепочке prerouting таблицы raw. В mangle она просто игнорируется. Это частая причина, почему policy routing «не работает».' },
 
       { t: 'h', x: 'Raw: до подсчёта соединений' },

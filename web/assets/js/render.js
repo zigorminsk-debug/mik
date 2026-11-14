@@ -108,7 +108,7 @@
       <div class="quiz-head"><h3>🧠 Проверка знаний</h3><span class="quiz-score">${quiz.length} вопросов</span></div>
       ${quiz.map((q, qi) => `<div class="q" data-q="${qi}">
         <div class="q-text">${qi + 1}. ${inline(q.q)}</div>
-        <div class="opts">${q.o.map((o, oi) => `<button class="opt" data-o="${oi}">
+        <div class="opts" role="radiogroup">${q.o.map((o, oi) => `<button class="opt" type="button" role="radio" aria-checked="false" data-o="${oi}">
             <span class="mk">${'АБВГД'[oi]}</span><span>${inline(o)}</span></button>`).join('')}</div>
         <div class="explain" hidden></div>
       </div>`).join('')}

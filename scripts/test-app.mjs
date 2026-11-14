@@ -86,13 +86,32 @@ await wait(80);
 const stored = JSON.parse(window.localStorage.getItem('mik.state.v1') || '{}');
 check('Чек-лист сохраняется', stored.checks && stored.checks.l05 && stored.checks.l05['0'] === true);
 
-// 6. тест
-const opt = window.document.querySelector('.quiz .q .opt');
-opt.dispatchEvent(new window.Event('click', { bubbles: true }));
+// 6. тест: выбираем ВЕРНЫЕ ответы — ожидаем полный балл
+const quizData = window.MIK_DATA.lessons['l05'].quiz;
+const questions = [...window.document.querySelectorAll('.quiz .q')];
+questions.forEach((qq, qi) => {
+  const right = qq.querySelector('.opt[data-o="' + quizData[qi].a + '"]');
+  right.dispatchEvent(new window.Event('click', { bubbles: true }));
+});
 window.document.querySelector('[data-quiz-check]').dispatchEvent(new window.Event('click', { bubbles: true }));
 await wait(120);
 const quizOut = window.document.querySelector('[data-quiz-out]').textContent;
-check('Тест считает результат', /Результат: \d+\/\d+/.test(quizOut), quizOut.trim());
+check('Тест: верные ответы дают полный балл', quizOut.includes('Результат: ' + quizData.length + '/' + quizData.length), quizOut.trim());
+check('Тест: верный ответ помечен correct', window.document.querySelectorAll('.quiz .opt.correct').length === quizData.length);
+check('Тест: разбор ответа показан', window.document.querySelectorAll('.quiz .explain:not([hidden])').length === quizData.length);
+
+// 6b. сброс и неверные ответы — ожидаем 0
+window.document.querySelector('[data-quiz-reset]').dispatchEvent(new window.Event('click', { bubbles: true }));
+await wait(60);
+questions.forEach((qq, qi) => {
+  const wrong = qq.querySelector('.opt:not([data-o="' + quizData[qi].a + '"])');
+  wrong.dispatchEvent(new window.Event('click', { bubbles: true }));
+});
+window.document.querySelector('[data-quiz-check]').dispatchEvent(new window.Event('click', { bubbles: true }));
+await wait(120);
+const quizOut2 = window.document.querySelector('[data-quiz-out]').textContent;
+check('Тест: неверные ответы дают 0', quizOut2.includes('Результат: 0/' + quizData.length), quizOut2.trim());
+check('Тест: неверный ответ помечен wrong', window.document.querySelectorAll('.quiz .opt.wrong').length === quizData.length);
 
 // 7. копирование команды (кнопка есть)
 check('Кнопка копирования есть', window.document.querySelectorAll('[data-copy]').length >= 2);

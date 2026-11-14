@@ -4,11 +4,14 @@ name: Сборка APK
 #
 # Ключ подписи (постоянный) хранится на GitHub и используется для всех сборок,
 # поэтому обновления приложения устанавливаются поверх предыдущих версий.
-# Источники ключа (в порядке приоритета):
-#   1) секреты репозитория: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
-#      ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD;
-#   2) ветка signing-key этого же репозитория (keystore/mik-release.p12);
-#   3) если ключа нет — собирается только debug-APK.
+# Ключ берётся ТОЛЬКО из секретов репозитория (Settings → Secrets and
+# variables → Actions):
+#   ANDROID_KEYSTORE_BASE64 — файл mik-release.p12 в base64;
+#   ANDROID_KEYSTORE_PASSWORD — пароль контейнера;
+#   ANDROID_KEY_ALIAS — псевдоним ключа (mikacademy);
+#   ANDROID_KEY_PASSWORD — пароль ключа (обычно совпадает с паролем контейнера).
+# Если секреты не заданы, собирается только debug-APK без подписи.
+# Ключ никогда не попадает в репозиторий, в артефакты и в логи.
 
 on:
   push:
@@ -87,29 +90,18 @@ jobs:
         run: |
           set -e
           mkdir -p android/keystore
-          if [ -n "${KEYSTORE_B64:-}" ]; then
-            echo "::notice::Ключ подписи: секреты репозитория"
+          if [ -n "${KEYSTORE_B64:-}" ] && [ -n "${STORE_PW:-}" ] && [ -n "${KEY_ALIAS:-}" ]; then
+            echo "::notice::Ключ подписи получен из секретов репозитория"
             printf '%s' "$KEYSTORE_B64" | base64 -d > android/keystore/mik-release.p12
+            chmod 600 android/keystore/mik-release.p12
             {
               echo "MIK_STORE_PASSWORD=${STORE_PW}"
               echo "MIK_KEY_ALIAS=${KEY_ALIAS}"
               echo "MIK_KEY_PASSWORD=${KEY_PW:-${STORE_PW}}"
             } >> "$GITHUB_ENV"
             echo "found=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          echo "::notice::Секреты не заданы — берём ключ из ветки signing-key"
-          git fetch --depth=1 origin signing-key:refs/remotes/origin/signing-key || true
-          if git show refs/remotes/origin/signing-key:keystore/mik-release.p12 > android/keystore/mik-release.p12 2>/dev/null; then
-            git show refs/remotes/origin/signing-key:keystore/keystore.properties > android/keystore/keystore.properties
-            {
-              echo "MIK_STORE_PASSWORD=$(grep '^store_password=' android/keystore/keystore.properties | cut -d= -f2)"
-              echo "MIK_KEY_ALIAS=$(grep '^alias=' android/keystore/keystore.properties | cut -d= -f2)"
-              echo "MIK_KEY_PASSWORD=$(grep '^key_password=' android/keystore/keystore.properties | cut -d= -f2)"
-            } >> "$GITHUB_ENV"
-            echo "found=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::Ключ подписи не найден — release-сборка будет пропущена"
+            echo "::warning::Секреты подписи не заданы (ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS) — release-сборка будет пропущена"
             echo "found=false" >> "$GITHUB_OUTPUT"
           fi
 
@@ -203,13 +195,21 @@ jobs:
           fi
           mkdir -p artifacts
           cp "$APK" "artifacts/mik-academy-${{ steps.ver.outputs.name }}.apk"
-          cp app/build/outputs/apk/debug/*.apk "artifacts/mik-academy-${{ steps.ver.outputs.name }}-debug.apk" 2>/dev/null || true
+          echo "Подписанный APK готов: $APK"
 
-      - name: Загрузить артефакты
+      - name: Загрузить подписанный APK
+        if: steps.keystore.outputs.found == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: mik-academy-apk
           path: android/artifacts/*.apk
+          if-no-files-found: warn
+
+      - name: Загрузить debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: mik-academy-apk-debug
+          path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: warn
 
       - name: Отчёт об ошибке сборки

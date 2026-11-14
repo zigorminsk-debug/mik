@@ -217,14 +217,15 @@
       $('[data-quiz-check]', q).addEventListener('click', () => {
         let correct = 0;
         $$('.q', q).forEach((qq, qi) => {
-          const picked = $('input[type=radio]:checked', qq);
+          // Варианты ответа — кнопки, поэтому выбранный определяется по классу .sel
+          const picked = $('.opt.sel', qq);
           const opts = $$('.opt', qq);
           const ans = l.quiz[qi].a;
           const ex = $('.explain', qq);
           opts.forEach((o) => { o.classList.remove('correct', 'wrong'); o.disabled = true; });
           if (opts[ans]) opts[ans].classList.add('correct');
           if (picked) {
-            if (picked.dataset.o == ans) { correct++; }
+            if (Number(picked.dataset.o) === Number(ans)) { correct++; }
             else { picked.classList.add('wrong'); }
           }
           ex.hidden = false;
@@ -242,14 +243,17 @@
         if (out) out.textContent = '';
       });
       // выбор ответа
-      $$('.q', q).forEach((qq, qi) => {
-        $$('.opt', qq).forEach((o) => o.addEventListener('click', () => {
-          if (o.disabled) return;
-          $$('.opt', qq).forEach((x) => x.classList.remove('sel'));
-          o.classList.add('sel');
-          o.setAttribute('aria-checked', 'true');
-        }));
-      });
+        $$('.q', q).forEach((qq, qi) => {
+          $$('.opt', qq).forEach((o) => o.addEventListener('click', () => {
+            if (o.disabled) return;
+            $$('.opt', qq).forEach((x) => {
+              x.classList.remove('sel');
+              x.setAttribute('aria-checked', 'false');
+            });
+            o.classList.add('sel');
+            o.setAttribute('aria-checked', 'true');
+          }));
+        });
     }
 
     // видео

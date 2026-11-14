@@ -110,7 +110,7 @@
       { t: 'note', k: 'tip', ttl: 'Почему анонсируют интерфейсы', x: 'OSPF анонсирует сети, подключённые к интерфейсам OSPF. Если на интерфейсе 10.10.0.1/24 стоит OSPF, анонс уйдёт в area 0. Если на втором интерфейсе той же площадки OSPF нет, второй интерфейс в маршрутизацию не попадёт.' },
 
       { t: 'h', x: 'Policy routing: маршрут по признаку' },
-      { t: 'code', ttl: 'RouterOS CLI — маркировка и маршрут', x: '# 1. маркируем трафик в mangle\n/ip firewall mangle add chain=prerouting src-address=192.168.90.0/24 \\\n    action=mark-routing new-routing-mark=to-ISP2 passthrough=yes\n\n# 2. создаём маршрут для маркировки\n/ip route add dst-address=0.0.0.0/0 gateway=198.51.100.7 routing-mark=to-ISP2\n\n# 3. разрешаем использовать routing-mark (иначе пакеты отбросятся)\n/ip firewall filter add chain=forward connection-state=invalid action=drop\n/ip firewall nat add chain=srcnat action=masquerade out-interface=ether2', note: 'Не забудьте правило в raw или filter, разрешающее routing-mark на forward, иначе пакеты с маркировкой не дойдут до маршрутизации.' },
+      { t: 'code', ttl: 'RouterOS CLI — маркировка и маршрут', x: '# 1. маркируем трафик в raw (только raw, в mangle маркировка игнорируется)\n/ip firewall raw add chain=prerouting src-address=192.168.90.0/24 \\\n    action=mark-routing new-routing-mark=to-ISP2 passthrough=yes\n\n# 2. создаём маршрут для маркировки\n/ip route add dst-address=0.0.0.0/0 gateway=198.51.100.7 routing-mark=to-ISP2\n\n# 3. разрешаем маркированный трафик в forward (иначе пакеты отбросятся)\n/ip firewall filter add chain=forward action=accept routing-mark=to-ISP2\n/ip firewall nat add chain=srcnat action=masquerade out-interface=ether2', note: 'Маркировка для policy routing делается только в raw на prerouting — в mangle она игнорируется. И не забудьте правило accept с routing-mark в цепочке forward, иначе пакеты с меткой будут отброшены.' },
       { t: 'table', head: ['Критерий', 'Где задаётся', 'Пример'], rows: [
         ['Адрес источника', 'mangle, src-address', 'Гостевой Wi-Fi через дешёвый канал'],
         ['Порт назначения', 'mangle, dst-port', 'VoIP через отдельный туннель'],
@@ -127,7 +127,7 @@
       { title: 'Опишите сети для анонса', text: 'Укажите подсети, которые должны быть видны другим.', cmd: '/routing ospf network add network=10.10.0.0/16 area=backbone', note: 'Не анонсируйте сети, которые не должны быть видны: это утечка внутренних адресов.' },
       { title: 'Включите OSPF на интерфейсах', text: 'Через interface-template задайте area, тип и стоимость.', cmd: '/routing ospf interface-template add area=backbone networks=192.168.88.0/24 type=broadcast cost=10', note: 'Для точечных линий между филиалами используйте type=point-to-point — это работает стабильнее.' },
       { title: 'Проверьте соседство', text: 'Смотрите, поднялись ли соседи и появились ли маршруты.', cmd: '/routing ospf neighbor print\n/routing ospf route print', note: 'Если соседство не поднимается, проверьте совпадение area, hello/dead таймеры и доступность мультикаста.' },
-      { title: 'Добавьте маркировку для policy routing', text: 'Отметьте трафик в mangle на этапе prerouting.', cmd: '/ip firewall mangle add chain=prerouting src-address=192.168.90.0/24 action=mark-routing new-routing-mark=isp2', note: 'Правило ставится первым в цепочке, иначе трафик успеет уйти с дефолтной маркировкой.' },
+      { title: 'Добавьте маркировку для policy routing', text: 'Отметьте трафик в raw на этапе prerouting — именно там RouterOS применяет routing-mark.', cmd: '/ip firewall raw add chain=prerouting src-address=192.168.90.0/24 action=mark-routing new-routing-mark=isp2', note: 'Правило ставится первым в цепочке raw, иначе трафик успеет уйти с дефолтной маркировкой.' },
       { title: 'Создайте маршрут по маркировке', text: 'Укажите routing-mark и нужный шлюз.', cmd: '/ip route add dst-address=0.0.0.0/0 gateway=198.51.100.7 routing-mark=isp2', note: 'Проверка: /ip route print where routing-mark=isp2.' }
     ],
     pitfalls: [
@@ -146,7 +146,7 @@
     ],
     quiz: [
       { q: 'Что такое area 0.0.0.0 в OSPF?', o: ['Главный маршрут по умолчанию', 'Ядро (backbone) области маршрутизации', 'Тип интерфейса', 'Пароль аутентификации'], a: 1, why: 'Backbone area — ядро OSPF, все остальные области подключаются к ней.' },
-      { q: 'Где указывается routing-mark трафика?', o: ['В /ip route', 'В mangle-правиле (mark-routing)', 'В DHCP-сервере', 'В bridge'], a: 1, why: 'Маркировка выполняется в mangle, а маршрут с этой меткой создаётся отдельно в таблице маршрутов.' },
+      { q: 'Где указывается routing-mark трафика?', o: ['В /ip route', 'В raw-правиле (mark-routing)', 'В DHCP-сервере', 'В bridge'], a: 1, why: 'Маркировка выполняется в raw на prerouting, а маршрут с этой меткой создаётся отдельно в таблице маршрутов.' },
       { q: 'Какой тип интерфейса OSPF лучше для линии между двумя филиалами?', o: ['broadcast', 'point-to-point', 'stub', 'none'], a: 1, why: 'На point-to-point не нужен multicast и DR/BDR, сходимость быстрее и стабильнее.' },
       { q: 'Почему нельзя анонсировать в OSPF все локальные сети?', o: ['Роутер зависнет', 'Это раскрывает внутреннюю структуру сети наружу', 'OSPF не умеет анонсировать подсети', 'Нужна лицензия BGP'], a: 1, why: 'Лишние анонсы — это утечка информации и лишняя нагрузка на канал.' },
       { q: 'Что произойдёт при отсутствии маршрута для routing-mark?', o: ['Трафик пойдёт по умолчанию', 'Маркированные пакеты будут отброшены', 'Роутер перезагрузится', 'Маркировка снимется автоматически'], a: 1, why: 'Для маркировки нужен собственный маршрут; при его отсутствии пакеты не маршрутизируются.' }
@@ -157,7 +157,7 @@
       { g: 'OSPF', c: '/routing ospf network add network=10.10.0.0/16 area=backbone', d: 'Анонсировать сеть' },
       { g: 'OSPF', c: '/routing ospf neighbor print', d: 'Соседи OSPF' },
       { g: 'OSPF', c: '/routing ospf lsa print', d: 'База состояния каналов' },
-      { g: 'Policy routing', c: '/ip firewall mangle add chain=prerouting action=mark-routing new-routing-mark=isp2', d: 'Пометить трафик' },
+      { g: 'Policy routing', c: '/ip firewall raw add chain=prerouting action=mark-routing new-routing-mark=isp2', d: 'Пометить трафик' },
       { g: 'Policy routing', c: '/ip route add dst-address=0.0.0.0/0 gateway=198.51.100.7 routing-mark=isp2', d: 'Маршрут по маркировке' }
     ],
     summary: 'OSPF: instance → area → interface-template → network. Всегда аутентификация и никаких лишних анонсов. Policy routing: маркируем в mangle, затем создаём маршрут с routing-mark. VRF — независимые таблицы маршрутизации на одном устройстве.'
