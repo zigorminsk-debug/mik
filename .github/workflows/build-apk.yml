@@ -288,37 +288,45 @@ jobs:
       - name: Опубликовать APK для скачивания
         # Готовый .apk выкладывается «как есть», без упаковки в zip:
         # файл сразу ставится на телефон, архив не нужен.
-        if: steps.keystore.outputs.found == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
           cd android/artifacts
           APK=$(ls -1 mik-academy-*.apk | grep -v debug | head -1 || true)
-          if [ -z "$APK" ]; then
-            echo "Нет подписанного APK для публикации"
+          DEBUG=$(ls -1 ../app/build/outputs/apk/debug/*.apk 2>/dev/null | head -1 || true)
+          if [ -z "$APK" ] && [ -z "$DEBUG" ]; then
+            echo "Нет APK для публикации"
             exit 0
           fi
           # стабильное имя — по нему работает прямая ссылка
           # https://github.com/zigorminsk-debug/mik/releases/latest/download/mik-academy.apk
-          cp "$APK" mik-academy.apk
-          echo "Публикуем: $APK ($(du -h "$APK" | cut -f1))"
+          [ -n "$APK" ] && cp "$APK" mik-academy.apk
+          [ -n "$DEBUG" ] && cp "$DEBUG" mik-academy-debug.apk
+          [ -n "$APK" ] && echo "Публикуем: $APK ($(du -h "$APK" | cut -f1))"
+
+          NOTES="Подписанный APK курса по RouterOS. Файл обычный, без архива: скачайте и откройте его на телефоне. Установка поверх предыдущей версии не требует удаления приложения."
+          [ -z "$APK" ] && NOTES="Отладочная сборка (подпись отладочным ключом, отдельный пакет com.mikacademy.app.debug) — только для проверки изменений. Релизная сборка появится после добавления ключа подписи в секреты репозитория."
 
           # 1. скользящий релиз «apk-latest» — всегда свежая сборка
           if gh release view apk-latest > /dev/null 2>&1; then
-            gh release upload apk-latest mik-academy.apk --clobber
-            gh release upload apk-latest "$APK" --clobber || true
+            [ -n "$APK" ] && gh release upload apk-latest mik-academy.apk --clobber
+            [ -n "$DEBUG" ] && gh release upload apk-latest mik-academy-debug.apk --clobber
+            [ -n "$APK" ] && gh release upload apk-latest "$APK" --clobber || true
             echo "Обновлён скользящий релиз apk-latest"
           else
-            gh release create apk-latest mik-academy.apk "$APK" \
+            FILES=""
+            [ -n "$APK" ] && FILES="mik-academy.apk $APK"
+            [ -n "$DEBUG" ] && FILES="$FILES mik-academy-debug.apk"
+            gh release create apk-latest $FILES \
               --title "MikroTik Академия — APK для установки" \
-              --notes "Подписанный APK курса по RouterOS. Файл обычный, без архива: скачайте и откройте его на телефоне. Установка поверх предыдущей версии не требует удаления приложения." \
+              --notes "$NOTES" \
               --target "$GITHUB_SHA"
             echo "Создан скользящий релиз apk-latest"
           fi
 
-          # 2. релиз по тегу — версионная запись
-          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+          # 2. релиз по тегу — версионная запись (только подписанный APK)
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ -n "$APK" ]; then
             if gh release view "${GITHUB_REF_NAME}" > /dev/null 2>&1; then
               gh release upload "${GITHUB_REF_NAME}" mik-academy.apk --clobber
               gh release upload "${GITHUB_REF_NAME}" "$APK" --clobber || true
