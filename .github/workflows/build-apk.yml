@@ -265,13 +265,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
-          mkdir -p artifacts
-          cd artifacts
+          mkdir -p android/artifacts
+          cd android/artifacts
+          # подписанный релизный APK (появится, когда в секретах есть ключ)
           APK=$(ls -1 mik-academy-*.apk 2>/dev/null | grep -v debug | head -1 || true)
+          # отладочная сборка — всегда собрана
           DEBUG=$(ls -1 ../app/build/outputs/apk/debug/*.apk 2>/dev/null | head -1 || true)
-          if [ -z "$APK" ] && [ -z "$DEBUG" ]; then
-            echo "Нет APK для публикации"
-            exit 0
+          if [ -z "$DEBUG" ] && [ -z "$APK" ]; then
+            echo "::error::Не найден ни один APK для публикации"
+            exit 1
           fi
           # стабильное имя — по нему работает прямая ссылка
           # https://github.com/zigorminsk-debug/mik/releases/latest/download/mik-academy.apk
