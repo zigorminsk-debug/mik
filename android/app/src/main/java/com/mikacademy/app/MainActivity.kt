@@ -11,7 +11,7 @@ import android.webkit.WebView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.webkit.ServiceWorkerClientCompat
-import androidx.webkit.ServiceWorkerController
+import androidx.webkit.ServiceWorkerControllerCompat
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewClientCompat
 
@@ -42,7 +42,7 @@ class MainActivity : AppCompatActivity() {
         // файлы из assets уходили бы в сеть, где домена appassets.androidplatform.net
         // не существует, и не воспроизводились.
         try {
-            ServiceWorkerController.getInstance()?.setServiceWorkerClient(
+            ServiceWorkerControllerCompat.getInstance()?.setServiceWorkerClient(
                 object : ServiceWorkerClientCompat() {
                     override fun shouldInterceptRequest(
                         request: WebResourceRequest
