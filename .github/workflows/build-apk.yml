@@ -139,14 +139,17 @@ jobs:
             echo '```' >> "$GITHUB_STEP_SUMMARY"
             if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
               {
-                echo "### ❌ Сборка APK упала"
+                echo "### ❌ Сборка debug APK упала"
                 echo ""
                 echo '```'
                 tail -70 /tmp/gradle-debug.log
                 echo '```'
               } > /tmp/report.md
-              gh api --method POST "/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments" \
-                -f body="$(cat /tmp/report.md)" || true
+              curl -sS -X POST \
+                -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments" \
+                --data "$(jq -n --rawfile body /tmp/report.md '{body: $body}')" || true
             fi
             exit 1
           }
@@ -174,8 +177,11 @@ jobs:
                 tail -70 /tmp/gradle-release.log
                 echo '```'
               } > /tmp/report.md
-              gh api --method POST "/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments" \
-                -f body="$(cat /tmp/report.md)" || true
+              curl -sS -X POST \
+                -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.pull_request.number }}/comments" \
+                --data "$(jq -n --rawfile body /tmp/report.md '{body: $body}')" || true
             fi
             exit 1
           }
