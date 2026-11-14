@@ -42,13 +42,32 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Принять лицензии SDK
+      - name: Подготовить Android SDK
         run: |
-          yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" > /dev/null 2>&1 || true
+          set -e
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          {
+            echo "### Android SDK"
+            echo ""
+            echo "SDK: \`$SDK\`"
+            echo ""
+            echo '```'
+            ls "$SDK" || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          SDKMANAGER=$(ls "$SDK"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | tail -1 || true)
+          [ -z "$SDKMANAGER" ] && SDKMANAGER=$(command -v sdkmanager 2>/dev/null || true)
+          if [ -n "$SDKMANAGER" ]; then
+            echo "sdkmanager: $SDKMANAGER"
+            yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+            "$SDKMANAGER" "platform-tools" "platforms;android-34" "build-tools;34.0.0" > /dev/null 2>&1 || true
+          else
+            echo "::warning::sdkmanager не найден — используются предустановленные пакеты"
+          fi
+          ls "$SDK/platforms" 2>/dev/null || true
+          ls "$SDK/build-tools" 2>/dev/null || true
 
       - name: Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -109,7 +128,9 @@ jobs:
 
       - name: Debug APK
         working-directory: android
-        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --stacktrace --no-daemon
 
       - name: Release APK (подписанный)
         if: steps.keystore.outputs.found == 'true'
