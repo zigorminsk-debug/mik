@@ -52,8 +52,16 @@ python3 -m http.server 8080 --directory web
 ### Android APK
 
 APK собирается в GitHub Actions: **[Actions → Сборка APK → Run workflow](https://github.com/zigorminsk-debug/mik/actions/workflows/build-apk.yml)**.
-Артефакты: `mik-academy-apk` — подписанный релизный APK, `mik-academy-apk-debug` — отладочный.
-При пуше тега `v1.0.0` дополнительно создаётся релиз с подписанным APK.
+
+**Скачать готовый APK** (обычный файл, без архива):
+
+```
+https://github.com/zigorminsk-debug/mik/releases/latest/download/mik-academy.apk
+```
+
+Сборка публикует подписанный APK в скользящем релизе `apk-latest`; по тегу `v1.0.0`
+дополнительно создаётся версионный релиз. Артефакты сборки: `mik-academy-apk` (подписанный)
+и `mik-academy-apk-debug` (отладочный, для тестов на устройстве).
 
 Ключ подписи лежит в **секретах GitHub** (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`,
 `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`). Добавить их один раз:

@@ -97,7 +97,7 @@
           <a class="btn" href="#/lesson/${ORDER[0]}">Начать с первого урока →</a>
           <a class="btn ghost" href="#/cheat">📘 Шпаргалка команд</a>
           <a class="btn ghost" href="#/exam">🎓 Итоговый экзамен</a>
-          <a class="btn ghost" href="https://github.com/zigorminsk-debug/mik/releases" target="_blank" rel="noopener">⬇ Скачать Android-версию</a>
+          <a class="btn ghost" href="https://github.com/zigorminsk-debug/mik/releases/latest/download/mik-academy.apk" target="_blank" rel="noopener" download>⬇ Скачать Android-версию (.apk)</a>
         </div>
         <div class="badge-row" style="margin-top:18px">
           <span class="badge">RouterOS 7.x</span><span class="badge">Winbox / CLI / API</span>

@@ -92,6 +92,17 @@ jobs:
           mkdir -p android/keystore
           if [ -n "${KEYSTORE_B64:-}" ] && [ -n "${STORE_PW:-}" ] && [ -n "${KEY_ALIAS:-}" ]; then
             echo "::notice::Ключ подписи получен из секретов репозитория"
+            {
+              echo "### Ключ подписи"
+              echo ""
+              echo "Источник: секреты репозитория (Actions secrets)"
+              echo ""
+              echo '```'
+              keytool -list -v -keystore android/keystore/mik-release.p12 \
+                -alias "${KEY_ALIAS}" -storepass "${STORE_PW}" 2>/dev/null \
+                | grep -E "Owner|Issuer|Valid from|SHA256|Certificate fingerprints" || true
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
             printf '%s' "$KEYSTORE_B64" | base64 -d > android/keystore/mik-release.p12
             chmod 600 android/keystore/mik-release.p12
             {
@@ -102,6 +113,20 @@ jobs:
             echo "found=true" >> "$GITHUB_OUTPUT"
           else
             echo "::warning::Секреты подписи не заданы (ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS) — release-сборка будет пропущена"
+            {
+              echo "### Ключ подписи"
+              echo ""
+              echo "❌ Секреты подписи не заданы — собран только debug APK."
+              echo ""
+              echo "Добавьте в репозитории четыре секрета (Settings → Secrets and variables → Actions):"
+              echo ""
+              echo "| Имя | Значение |"
+              echo "|---|---|"
+              echo "| ANDROID_KEYSTORE_BASE64 | base64 файла mik-release.p12 |"
+              echo "| ANDROID_KEYSTORE_PASSWORD | пароль хранилища |"
+              echo "| ANDROID_KEY_ALIAS | mikacademy |"
+              echo "| ANDROID_KEY_PASSWORD | пароль ключа |"
+            } >> "$GITHUB_STEP_SUMMARY"
             echo "found=false" >> "$GITHUB_OUTPUT"
           fi
 
@@ -190,6 +215,17 @@ jobs:
           fi
           echo "APK: $APK ($(du -h "$APK" | cut -f1))"
           APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | tail -1 || true)
+          {
+            echo "### Подпись APK"
+            echo ""
+            echo '```'
+            if [ -n "$APKSIGNER" ]; then
+              "$APKSIGNER" verify --verbose --print-certs "$APK" | head -20
+            else
+              echo "apksigner не найден"
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
           if [ -n "$APKSIGNER" ]; then
             "$APKSIGNER" verify --verbose --print-certs "$APK" | head -20
           fi
@@ -249,18 +285,48 @@ jobs:
             /tmp/gradle-*.log
           if-no-files-found: ignore
 
-      - name: Опубликовать релиз
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Опубликовать APK для скачивания
+        # Готовый .apk выкладывается «как есть», без упаковки в zip:
+        # файл сразу ставится на телефон, архив не нужен.
+        if: steps.keystore.outputs.found == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -e
           cd android/artifacts
           APK=$(ls -1 mik-academy-*.apk | grep -v debug | head -1 || true)
           if [ -z "$APK" ]; then
-            echo "Нет подписанного APK для релиза"
+            echo "Нет подписанного APK для публикации"
             exit 0
           fi
-          gh release create "${GITHUB_REF_NAME}" "$APK" \
-            --title "MikroTik Академия ${{ steps.ver.outputs.name }}" \
-            --notes "Подписанный APK курса по RouterOS. Установка поверх предыдущей версии не требует удаления приложения." \
-            || gh release upload "${GITHUB_REF_NAME}" "$APK" --clobber
+          # стабильное имя — по нему работает прямая ссылка
+          # https://github.com/zigorminsk-debug/mik/releases/latest/download/mik-academy.apk
+          cp "$APK" mik-academy.apk
+          echo "Публикуем: $APK ($(du -h "$APK" | cut -f1))"
+
+          # 1. скользящий релиз «apk-latest» — всегда свежая сборка
+          if gh release view apk-latest > /dev/null 2>&1; then
+            gh release upload apk-latest mik-academy.apk --clobber
+            gh release upload apk-latest "$APK" --clobber || true
+            echo "Обновлён скользящий релиз apk-latest"
+          else
+            gh release create apk-latest mik-academy.apk "$APK" \
+              --title "MikroTik Академия — APK для установки" \
+              --notes "Подписанный APK курса по RouterOS. Файл обычный, без архива: скачайте и откройте его на телефоне. Установка поверх предыдущей версии не требует удаления приложения." \
+              --target "$GITHUB_SHA"
+            echo "Создан скользящий релиз apk-latest"
+          fi
+
+          # 2. релиз по тегу — версионная запись
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            if gh release view "${GITHUB_REF_NAME}" > /dev/null 2>&1; then
+              gh release upload "${GITHUB_REF_NAME}" mik-academy.apk --clobber
+              gh release upload "${GITHUB_REF_NAME}" "$APK" --clobber || true
+            else
+              gh release create "${GITHUB_REF_NAME}" mik-academy.apk "$APK" \
+                --title "MikroTik Академия ${{ steps.ver.outputs.name }}" \
+                --notes "Подписанный APK курса по RouterOS. Установка поверх предыдущей версии не требует удаления приложения." \
+                --target "$GITHUB_SHA"
+            fi
+            echo "Опубликован релиз ${GITHUB_REF_NAME}"
+          fi

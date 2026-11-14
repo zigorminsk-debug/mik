@@ -18,6 +18,9 @@
   --code-bg:#10151c; --shadow:0 8px 24px rgba(16,24,40,.10);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+/* Атрибут hidden должен всегда побеждать авторские правила display:
+   иначе, например, .sheet{display:flex} показывает окно поиска сразу при запуске. */
+[hidden]{display:none !important}
 html,body{margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{

@@ -65,6 +65,19 @@ check('Сайдбар: главы отрисованы', window.document.querySe
 // 3. главная страница
 check('Главная: заголовок', window.document.querySelector('.hero-home h1') !== null);
 
+// 3a. скрытые элементы действительно скрыты (атрибут hidden должен побеждать display в CSS)
+{
+  const sheet = window.document.querySelector('#search-sheet');
+  const toast = window.document.querySelector('#toast');
+  const install = window.document.querySelector('#btn-install');
+  check('Окно поиска скрыто при запуске', sheet.hidden === true);
+  check('Окно поиска не перекрывает страницу',
+    window.getComputedStyle(sheet).display === 'none',
+    window.getComputedStyle(sheet).display);
+  check('Уведомление скрыто при запуске', window.getComputedStyle(toast).display === 'none');
+  check('Кнопка установки скрыта без PWA-события', window.getComputedStyle(install).display === 'none');
+}
+
 // 4. урок
 window.location.hash = '#/lesson/l05';
 await wait(250);
