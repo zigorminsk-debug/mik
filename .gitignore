@@ -1,0 +1,34 @@
+# Секреты и ключи (никогда не коммитим)
+*.jks
+*.keystore
+*.p12
+*.p12.b64
+android/keystore/
+android/local.properties
+.secrets/
+.env
+.env.*
+
+# Промежуточные материалы (озвучка пересобирается из media/narration.json)
+media/audio/
+media/slides/
+
+# Node / сборка
+node_modules/
+.gradle/
+build/
+dist/
+out/
+.idea/
+*.iml
+.vscode/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db

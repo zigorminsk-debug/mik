@@ -1,0 +1,45 @@
+name: Веб-версия курса (GitHub Pages)
+
+# Публикует веб-приложение курса на GitHub Pages.
+# Требует включения Pages в Settings → Pages → Source: GitHub Actions.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Проверка данных курса
+        run: node scripts/validate-content.mjs
+
+      - name: Подготовить статический сайт
+        run: |
+          mkdir -p _site
+          cp -r web/. _site/
+          echo "Файлов: $(find _site -type f | wc -l), размер: $(du -sh _site | cut -f1)"
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@v4

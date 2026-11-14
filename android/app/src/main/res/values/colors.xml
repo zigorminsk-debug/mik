@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="mik_bg">#0D1117</color>
+    <color name="mik_bg_dark">#080B10</color>
+    <color name="mik_accent">#FF6A1A</color>
+    <color name="mik_accent_2">#37B9F1</color>
+    <color name="ic_launcher_background">#11161D</color>
+</resources>

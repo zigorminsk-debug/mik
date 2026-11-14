@@ -1,0 +1,165 @@
+name: Сборка APK
+
+# Сборка подписанного Android-приложения из веб-курса.
+#
+# Ключ подписи (постоянный) хранится на GitHub и используется для всех сборок,
+# поэтому обновления приложения устанавливаются поверх предыдущих версий.
+# Источники ключа (в порядке приоритета):
+#   1) секреты репозитория: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
+#      ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD;
+#   2) ветка signing-key этого же репозитория (keystore/mik-release.p12);
+#   3) если ключа нет — собирается только debug-APK.
+
+on:
+  push:
+    branches: [main, 'arena/**']
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Версия приложения (например 1.1.0)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: debug + release APK
+    runs-on: ubuntu-latest
+    env:
+      GRADLE_OPTS: -Dorg.gradle.daemon=false
+    steps:
+      - name: Исходный код
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Принять лицензии SDK
+        run: |
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" > /dev/null 2>&1 || true
+
+      - name: Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Проверка данных курса
+        run: node scripts/validate-content.mjs
+
+      - name: Получить постоянный ключ подписи
+        id: keystore
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PW: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -e
+          mkdir -p android/keystore
+          if [ -n "${KEYSTORE_B64:-}" ]; then
+            echo "::notice::Ключ подписи: секреты репозитория"
+            printf '%s' "$KEYSTORE_B64" | base64 -d > android/keystore/mik-release.p12
+            {
+              echo "MIK_STORE_PASSWORD=${STORE_PW}"
+              echo "MIK_KEY_ALIAS=${KEY_ALIAS}"
+              echo "MIK_KEY_PASSWORD=${KEY_PW:-${STORE_PW}}"
+            } >> "$GITHUB_ENV"
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "::notice::Секреты не заданы — берём ключ из ветки signing-key"
+          git fetch --depth=1 origin signing-key:refs/remotes/origin/signing-key || true
+          if git show refs/remotes/origin/signing-key:keystore/mik-release.p12 > android/keystore/mik-release.p12 2>/dev/null; then
+            git show refs/remotes/origin/signing-key:keystore/keystore.properties > android/keystore/keystore.properties
+            {
+              echo "MIK_STORE_PASSWORD=$(grep '^store_password=' android/keystore/keystore.properties | cut -d= -f2)"
+              echo "MIK_KEY_ALIAS=$(grep '^alias=' android/keystore/keystore.properties | cut -d= -f2)"
+              echo "MIK_KEY_PASSWORD=$(grep '^key_password=' android/keystore/keystore.properties | cut -d= -f2)"
+            } >> "$GITHUB_ENV"
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Ключ подписи не найден — release-сборка будет пропущена"
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Определить версию
+        id: ver
+        run: |
+          if [ -n "${{ inputs.version_name }}" ]; then
+            VERSION_NAME="${{ inputs.version_name }}"
+          elif [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            VERSION_NAME="${GITHUB_REF_NAME#v}"
+          else
+            VERSION_NAME="$(grep -oP '"version"\s*:\s*"\K[^"]+' web/manifest.webmanifest 2>/dev/null || echo 1.0.0)"
+          fi
+          echo "name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
+          echo "code=$(date +%s)" >> "$GITHUB_OUTPUT"
+          echo "Версия: ${VERSION_NAME}"
+
+      - name: Debug APK
+        working-directory: android
+        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
+
+      - name: Release APK (подписанный)
+        if: steps.keystore.outputs.found == 'true'
+        working-directory: android
+        env:
+          MIK_KEYSTORE_PATH: android/keystore/mik-release.p12
+        run: |
+          ./gradlew :app:assembleRelease \
+            -PversionName=${{ steps.ver.outputs.name }} \
+            -PversionCode=${{ steps.ver.outputs.code }} \
+            --stacktrace --no-daemon
+
+      - name: Проверить подпись и собрать артефакты
+        if: steps.keystore.outputs.found == 'true'
+        working-directory: android
+        run: |
+          set -e
+          APK=$(ls -1 app/build/outputs/apk/release/*.apk 2>/dev/null | head -1 || true)
+          if [ -z "$APK" ]; then
+            echo "Release APK не найден"
+            exit 0
+          fi
+          echo "APK: $APK ($(du -h "$APK" | cut -f1))"
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | tail -1 || true)
+          if [ -n "$APKSIGNER" ]; then
+            "$APKSIGNER" verify --verbose --print-certs "$APK" | head -20
+          fi
+          mkdir -p artifacts
+          cp "$APK" "artifacts/mik-academy-${{ steps.ver.outputs.name }}.apk"
+          cp app/build/outputs/apk/debug/*.apk "artifacts/mik-academy-${{ steps.ver.outputs.name }}-debug.apk" 2>/dev/null || true
+
+      - name: Загрузить артефакты
+        uses: actions/upload-artifact@v4
+        with:
+          name: mik-academy-apk
+          path: android/artifacts/*.apk
+          if-no-files-found: warn
+
+      - name: Опубликовать релиз
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd android/artifacts
+          APK=$(ls -1 mik-academy-*.apk | grep -v debug | head -1 || true)
+          if [ -z "$APK" ]; then
+            echo "Нет подписанного APK для релиза"
+            exit 0
+          fi
+          gh release create "${GITHUB_REF_NAME}" "$APK" \
+            --title "MikroTik Академия ${{ steps.ver.outputs.name }}" \
+            --notes "Подписанный APK курса по RouterOS. Установка поверх предыдущей версии не требует удаления приложения." \
+            || gh release upload "${GITHUB_REF_NAME}" "$APK" --clobber
