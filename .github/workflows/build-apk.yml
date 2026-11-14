@@ -313,16 +313,27 @@ jobs:
           NOTES="Подписанный APK курса по RouterOS. Файл обычный, без архива: скачайте и откройте его на телефоне. Установка поверх предыдущей версии не требует удаления приложения."
           [ -z "$APK" ] && NOTES="Отладочная сборка (подпись отладочным ключом, отдельный пакет com.mikacademy.app.debug) — только для проверки изменений. Релизная сборка появится после добавления ключа подписи в секреты репозитория."
 
+          # контрольная сумма каждого выкладываемого файла
+          for f in mik-academy.apk mik-academy-debug.apk; do
+            [ -f "$f" ] && sha256sum "$f" > "$f.sha256"
+          done
+
           # 1. скользящий релиз «apk-latest» — всегда свежая сборка
           if gh release view apk-latest > /dev/null 2>&1; then
             [ -n "$APK" ] && gh release upload apk-latest mik-academy.apk --clobber
             [ -n "$DEBUG" ] && gh release upload apk-latest mik-academy-debug.apk --clobber
             [ -n "$APK" ] && gh release upload apk-latest "$APK" --clobber || true
+            for f in mik-academy.apk mik-academy-debug.apk; do
+              [ -f "$f.sha256" ] && gh release upload apk-latest "$f.sha256" --clobber || true
+            done
             echo "Обновлён скользящий релиз apk-latest"
           else
             FILES=""
             [ -n "$APK" ] && FILES="mik-academy.apk $APK"
             [ -n "$DEBUG" ] && FILES="$FILES mik-academy-debug.apk"
+            for f in mik-academy.apk mik-academy-debug.apk; do
+              [ -f "$f.sha256" ] && FILES="$FILES $f.sha256"
+            done
             gh release create apk-latest $FILES \
               --title "MikroTik Академия — APK для установки" \
               --notes "$NOTES" \
@@ -345,38 +356,27 @@ jobs:
           fi
 
       - name: Проверить опубликованный APK
-        # Скачиваем файл из релиса обратно и проверяем его целостность:
-        # так видно, что доехало до пользователя именно то, что собрано.
+        # Проверяем ровно те файлы, которые ушли в релиз: целостность архива,
+        # подпись apksigner и контрольная сумма.
         if: github.event_name != 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -e
-          rm -rf /tmp/check && mkdir -p /tmp/check && cd /tmp/check
-          ASSET=""
-          for f in mik-academy.apk mik-academy-debug.apk; do
-            if gh release download apk-latest --pattern "$f" --dir . 2>/dev/null; then
-              ASSET="$f"
-              break
-            fi
-          done
-          if [ -z "$ASSET" ]; then
-            echo "::warning::Не удалось скачать опубликованный APK для проверки"
-            exit 0
-          fi
-          echo "Проверяем $ASSET ($(du -h "$ASSET" | cut -f1))"
-          unzip -tq "$ASSET" > /dev/null && echo "ZIP: целостность архива в порядке"
+          cd android/artifacts
           APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | tail -1)
-          "$APKSIGNER" verify --verbose --print-certs "$ASSET" | head -12
-          sha256sum "$ASSET" | awk '{print $1}' > "$ASSET.sha256"
-          gh release upload apk-latest "$ASSET.sha256" --clobber
           {
-            echo "### Опубликованный APK"
+            echo "### Опубликованные файлы"
             echo ""
-            echo "- файл: \`$ASSET\`"
-            echo "- размер: $(du -h "$ASSET" | cut -f1)"
-            echo "- SHA-256: \`$(cat "$ASSET.sha256")\`"
           } >> "$GITHUB_STEP_SUMMARY"
+          for f in mik-academy.apk mik-academy-debug.apk; do
+            [ -f "$f" ] || continue
+            echo "Проверяем $f ($(du -h "$f" | cut -f1))"
+            unzip -tq "$f" > /dev/null && echo "  целостность архива: ок"
+            "$APKSIGNER" verify --verbose "$f" | head -6
+            echo "  sha256: $(sha256sum "$f" | cut -d' ' -f1)"
+            {
+              echo "- \`$f\` — $(du -h "$f" | cut -f1), sha256 \`$(sha256sum "$f" | cut -d' ' -f1)\`"
+            } >> "$GITHUB_STEP_SUMMARY"
+          done
 
       - name: Отчёт об ошибке сборки
         if: failure()
