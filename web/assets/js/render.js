@@ -61,21 +61,25 @@
       <pre id="${id}">${hl(code)}</pre></div>`;
   }
 
-  function videoBlock(lesson) {
+  function videoBlock(lesson, lessonId) {
     if (!lesson.video) return '';
+    const lid = lessonId || lesson.id || '';
     const t = (lesson.transcript || []).map((p) => `<p>${inline(p)}</p>`).join('');
     return `<div class="video-wrap">
-      <video id="vid-${esc(lesson.id)}" preload="metadata" playsinline controls
+      <video id="vid-${esc(lid)}" preload="metadata" playsinline controls
         poster="${esc(lesson.poster || 'assets/img/poster.svg')}">
         <source src="${esc(lesson.video)}" type="video/mp4">
         Ваш браузер не поддерживает видео.
       </video>
-      <div class="vbtn" data-vbtn="${esc(lesson.id)}"><span><svg viewBox="0 0 24 24" width="30" height="30"><path d="M8 5v14l11-7z" fill="#fff"/></svg></span></div>
-      <div class="video-cap"><span>${esc(lesson.videoCap || 'Поясняющее видео к уроку')}</span>
-        ${t ? `<button class="ghost-btn" style="padding:3px 10px;font-size:12px" data-transcript="${esc(lesson.id)}">Текст</button>` : ''}
+      <div class="vbtn" data-vbtn="${esc(lid)}"><span><svg viewBox="0 0 24 24" width="30" height="30"><path d="M8 5v14l11-7z" fill="#fff"/></svg></span></div>
+      <div class="video-cap"><span>${esc(lesson.videoCap || 'Поясняющее видео к уроку')}</span></div>
+    </div>
+    ${t ? `<section class="transcript open" id="tr-${esc(lid)}">
+      <div class="tr-head"><b>Текст урока</b>
+        <button type="button" class="ghost-btn" data-transcript="${esc(lid)}">Свернуть</button>
       </div>
-      ${t ? `<div class="transcript" id="tr-${esc(lesson.id)}">${t}</div>` : ''}
-    </div>`;
+      ${t}
+    </section>` : ''}`;
   }
 
   function stepsBlock(steps) {

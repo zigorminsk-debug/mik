@@ -36,10 +36,26 @@ jobs:
           echo "Файлов: $(find _site -type f | wc -l), размер: $(du -sh _site | cut -f1)"
 
       - uses: actions/configure-pages@v5
+
+      - name: Проверить, что Pages включён
+        id: pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "/repos/${GITHUB_REPOSITORY}/pages" > /dev/null 2>&1; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "Pages включён — публикуем"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Pages не включён. Включите Settings → Pages → Source: GitHub Actions и запустите воркфлоф заново."
+          fi
+
       - uses: actions/upload-pages-artifact@v3
+        if: steps.pages.outputs.enabled == 'true'
         with:
           path: _site
 
       - id: deployment
+        if: steps.pages.outputs.enabled == 'true'
         continue-on-error: true
         uses: actions/deploy-pages@v4

@@ -51,20 +51,28 @@ python3 -m http.server 8080 --directory web
 
 ### Android APK
 
-APK собирается в GitHub Actions: **[Actions → Build APK → Run workflow](https://github.com/zigorminsk-debug/mik/actions/workflows/build-apk.yml)**,
-артефакт скачивается из раздела *Artifacts* (`mik-academy-apk`).
-При пуше тега `v1.2.3` дополнительно создаётся релиз с подписанным APK.
+APK собирается в GitHub Actions: **[Actions → Сборка APK → Run workflow](https://github.com/zigorminsk-debug/mik/actions/workflows/build-apk.yml)**.
+Артефакты: `mik-academy-apk` — подписанный релизный APK, `mik-academy-apk-debug` — отладочный.
+При пуше тега `v1.0.0` дополнительно создаётся релиз с подписанным APK.
+
+Ключ подписи лежит в **секретах GitHub** (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`,
+`ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`). Добавить их один раз:
+
+```bash
+./scripts/setup-secrets.sh          # нужны права Administration → Actions → Secrets
+```
+
+Без секретов собирается только debug-APK — неподписанный релиз никогда не публикуется.
+Подробности и восстановление ключа: [docs/signing.md](docs/signing.md).
 
 Локальная сборка (нужны JDK 17 и Android SDK 34):
 
 ```bash
 cd android
-./gradlew :app:assembleRelease \
-  -PMIK_KEYSTORE_PATH=keystore/mik-release.p12 \
-  -PversionName=1.0.0 -PversionCode=1
+export MIK_KEYSTORE_PATH="$PWD/keystore/mik-release.p12"
+export MIK_STORE_PASSWORD=... MIK_KEY_ALIAS=mikacademy MIK_KEY_PASSWORD=...
+./gradlew :app:assembleRelease -PversionName=1.0.0 -PversionCode=1
 ```
-
-Ключ подписи обязателен для release-сборки — см. [docs/signing.md](docs/signing.md).
 
 ## Структура репозитория
 
@@ -86,7 +94,7 @@ mik/
 ├── scripts/                 # генераторы: иконки, видео, ключ подписи, валидация
 ├── media/                   # промежуточные материалы: озвучка, транскрипты
 ├── docs/                    # документация: подпись, архитектура, контент
-└── .github/workflows/       # build-apk.yml (APK), pages.yml (веб-версия)
+└── .github/workflows/       # build-apk.yml (APK), ci.yml (проверки), pages.yml (веб-версия)
 ```
 
 Исходники веб-приложения лежат **в одном месте** (`web/`); Android-сборка копирует их
@@ -101,8 +109,9 @@ mik/
 * **Android** — `MainActivity` отдаёт `web/` через `WebViewAssetLoader` по адресу
   `https://appassets.androidplatform.net/...`. Это безопасный https-origin, поэтому внутри
   работают service worker, localStorage и офлайн-режим.
-* **CI** — `build-apk.yml` собирает debug и подписанный release APK, проверяет подпись
-  `apksigner` и выкладывает артефакты.
+* **CI** — `ci.yml` проверяет целостность данных курса и прогоняет дымовой тест
+  веб-приложения (jsdom); `build-apk.yml` собирает debug и подписанный release APK,
+  проверяет подпись `apksigner` и выкладывает артефакты.
 
 Подробности: [docs/architecture.md](docs/architecture.md).
 

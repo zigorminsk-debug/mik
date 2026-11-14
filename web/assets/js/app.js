@@ -12,6 +12,8 @@
   const LESSONS = DATA.lessons;
   const ORDER = [];
   DATA.chapters.forEach((ch) => (ch.lessons || []).forEach((id) => ORDER.push(id)));
+  // идентификатор урока нужен разметке (id видео, текста, чек-листа)
+  Object.keys(LESSONS).forEach((id) => { if (!LESSONS[id].id) LESSONS[id].id = id; });
 
   /* ---------------- состояние ---------------- */
   const KEY = 'mik.state.v1';
@@ -160,7 +162,7 @@
 
       <div class="lesson-grid">
         <article class="prose" id="lesson-body">
-          ${R.videoBlock(l)}
+          ${R.videoBlock(l, id)}
           ${(l.blocks || []).map((b, i) => R.block(b, i)).join('')}
           ${R.stepsBlock(l.steps)}
           ${R.pitfallsBlock(l.pitfalls)}
@@ -268,7 +270,10 @@
     const tb = $('[data-transcript="' + id + '"]');
     if (tb) tb.addEventListener('click', () => {
       const tr = document.getElementById('tr-' + id);
-      if (tr) tr.classList.toggle('open');
+      if (tr) {
+        const open = tr.classList.toggle('open');
+        tb.textContent = open ? 'Свернуть' : 'Развернуть';
+      }
     });
 
     // оглавление

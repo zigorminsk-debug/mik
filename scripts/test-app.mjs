@@ -75,6 +75,16 @@ check('Урок: есть блоки команд', window.document.querySelecto
 check('Урок: есть чек-лист', window.document.querySelectorAll('.checklist .ck').length >= 5);
 check('Урок: есть тест', window.document.querySelectorAll('.quiz .q').length >= 4);
 check('Урок: есть видео', window.document.querySelectorAll('#lesson-body video').length === 1);
+check('Урок: текст урока открыт по умолчанию', !!window.document.querySelector('.transcript.open'));
+check('Урок: текст урока содержит абзацы', window.document.querySelectorAll('.transcript p').length >= 4,
+  window.document.querySelectorAll('.transcript p').length + ' абзацев');
+check('Урок: текст урока сворачивается', (() => {
+  const btn = window.document.querySelector('[data-transcript]');
+  btn.dispatchEvent(new window.Event('click', { bubbles: true }));
+  const collapsed = !window.document.querySelector('.transcript').classList.contains('open');
+  btn.dispatchEvent(new window.Event('click', { bubbles: true }));
+  return collapsed && window.document.querySelector('.transcript').classList.contains('open');
+})());
 check('Урок: есть таблица', window.document.querySelectorAll('#lesson-body table').length >= 1);
 check('Урок: заголовок H1', (window.document.querySelector('.hero h1')?.textContent || '').includes('IP-адресация'));
 
