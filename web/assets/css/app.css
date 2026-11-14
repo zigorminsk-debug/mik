@@ -51,7 +51,8 @@ h1,h2,h3,h4{line-height:1.25;margin:0 0 .5em}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 
 /* ---------- Topbar ---------- */
-.topbar{position:sticky;top:0;z-index:40;height:var(--topbar-h);display:flex;align-items:center;gap:10px;padding:0 12px;
+.topbar{position:sticky;top:0;z-index:40;height:var(--topbar-h);display:flex;align-items:center;gap:10px;
+  padding-left:calc(12px + env(safe-area-inset-left));padding-right:calc(12px + env(safe-area-inset-right));
   background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
 .brand{display:flex;align-items:center;gap:9px;color:var(--txt);font-size:15.5px;white-space:nowrap}
 .brand b{color:var(--acc)}
@@ -92,8 +93,10 @@ kbd{font-family:var(--mono);font-size:11px;background:var(--bg-2);border:1px sol
 /* ---------- Layout ---------- */
 .layout{display:flex;align-items:flex-start}
 .sidebar{position:sticky;top:var(--topbar-h);width:var(--sidebar-w);height:calc(100vh - var(--topbar-h));
-  overflow-y:auto;border-right:1px solid var(--line);background:var(--bg-2);padding:14px 10px 30px;flex:0 0 auto}
-.main{flex:1;min-width:0;padding:22px 20px 90px;max-width:1180px}
+  overflow-y:auto;border-right:1px solid var(--line);background:var(--bg-2);flex:0 0 auto;
+  padding:14px 10px 30px calc(10px + env(safe-area-inset-left));padding-right:10px}
+.main{flex:1;min-width:0;max-width:1180px;
+  padding:22px calc(20px + env(safe-area-inset-right)) 90px calc(20px + env(safe-area-inset-left))}
 @media (max-width:860px){
   .sidebar{position:fixed;left:0;top:var(--topbar-h);z-index:45;transform:translateX(-102%);transition:transform .25s ease;box-shadow:var(--shadow)}
   .sidebar.open{transform:none}
@@ -307,7 +310,8 @@ kbd{font-family:var(--mono);font-size:11px;background:var(--bg-2);border:1px sol
 .exam-badge b{font-size:1.125rem;display:block;margin-bottom:4px}
 
 /* search sheet */
-.sheet{position:fixed;inset:0;z-index:60;background:rgba(4,7,11,.72);backdrop-filter:blur(3px);padding:10vh 12px 12px;display:flex;justify-content:center}
+.sheet{position:fixed;inset:0;z-index:60;background:rgba(4,7,11,.72);backdrop-filter:blur(3px);display:flex;justify-content:center;
+  padding:calc(10vh + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left))}
 .sheet-box{width:100%;max-width:680px;background:var(--bg-2);border:1px solid var(--line);border-radius:16px;overflow:hidden;
   display:flex;flex-direction:column;max-height:76vh;box-shadow:var(--shadow)}
 .sheet-head{display:flex;gap:10px;align-items:center;padding:12px;border-bottom:1px solid var(--line)}
