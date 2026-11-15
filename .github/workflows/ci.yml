@@ -1,0 +1,46 @@
+name: Проверка курса
+
+# Быстрые проверки исходников: целостность данных курса и дымовой тест
+# веб-приложения в headless-браузере (jsdom).
+
+on:
+  push:
+    branches: [main, 'arena/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: данные и приложение
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Проверка данных курса
+        run: node scripts/validate-content.mjs
+
+      - name: Установка зависимостей теста
+        run: npm install --no-save jsdom
+
+      - name: Дымовой тест веб-приложения
+        run: node scripts/test-app.mjs
+
+      - name: Сборка списка файлов приложения
+        run: |
+          {
+            echo "### Состав приложения"
+            echo ""
+            echo "| Раздел | Файлов | Размер |"
+            echo "|---|---:|---:|"
+            for d in web/assets/data web/assets/js web/assets/css web/assets/media/video; do
+              printf "| %s | %s | %s |\n" "$d" "$(find $d -type f | wc -l)" "$(du -sh $d | cut -f1)"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"

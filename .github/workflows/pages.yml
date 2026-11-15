@@ -1,0 +1,61 @@
+name: Веб-версия курса (GitHub Pages)
+
+# Публикует веб-приложение курса на GitHub Pages.
+# Требует включения Pages в Settings → Pages → Source: GitHub Actions.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Проверка данных курса
+        run: node scripts/validate-content.mjs
+
+      - name: Подготовить статический сайт
+        run: |
+          mkdir -p _site
+          cp -r web/. _site/
+          echo "Файлов: $(find _site -type f | wc -l), размер: $(du -sh _site | cut -f1)"
+
+      - uses: actions/configure-pages@v5
+
+      - name: Проверить, что Pages включён
+        id: pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "/repos/${GITHUB_REPOSITORY}/pages" > /dev/null 2>&1; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "Pages включён — публикуем"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Pages не включён. Включите Settings → Pages → Source: GitHub Actions и запустите воркфлоф заново."
+          fi
+
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.pages.outputs.enabled == 'true'
+        with:
+          path: _site
+
+      - id: deployment
+        if: steps.pages.outputs.enabled == 'true'
+        continue-on-error: true
+        uses: actions/deploy-pages@v4

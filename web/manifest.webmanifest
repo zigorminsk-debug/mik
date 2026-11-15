@@ -1,0 +1,24 @@
+{
+  "name": "MikroTik Академия — курс по RouterOS",
+  "short_name": "MikroTik Академия",
+  "description": "Практический курс по MikroTik RouterOS: 14 глав, 21 урок, видео, готовые конфиги, тесты и шпаргалка команд. Работает офлайн.",
+  "lang": "ru",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "mik-academy",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "categories": ["education", "books", "productivity"],
+  "icons": [
+    { "src": "assets/img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/img/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Шпаргалка команд", "url": "./index.html#/cheat" },
+    { "name": "Итоговый экзамен", "url": "./index.html#/exam" }
+  ]
+}

@@ -1,0 +1,47 @@
+# Секреты и ключи (никогда не коммитим)
+*.jks
+*.keystore
+*.p12
+*.p12.b64
+android/keystore/*
+# отладочный ключ — намеренно в репозитории: он ничего не защищает,
+# но позволяет обновлять отладочные сборки поверх предыдущих
+!android/keystore/mik-debug.p12
+!android/keystore/mik-debug.properties
+android/local.properties
+.secrets/
+.env
+.env.*
+
+# Промежуточные материалы сборки видео
+media/slides/
+# склеенный трек озвучки — временный файл сборки
+media/audio/*-full.m4a
+
+# media/audio/ — озвучка курса (47 клипов, ~10 МБ). Лежит в репозитории
+# намеренно: синтез выдаёт не больше 10 клипов за заход, а окружение
+# стирает игнорируемые файлы, поэтому клипы хранятся в git — иначе
+# озвучку пришлось бы синтезировать заново.
+
+# Node / сборка
+node_modules/
+.gradle/
+build/
+dist/
+out/
+.idea/
+*.iml
+.vscode/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# образцы озвучки для прослушивания (не публикуются)
+media/samples/
