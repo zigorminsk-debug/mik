@@ -238,8 +238,16 @@ kbd{font-family:var(--mono);font-size:11px;background:var(--bg-2);border:1px sol
 .opt{display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg-2);
   font-size:14.5px;color:var(--txt-2);text-align:left;width:100%;transition:border-color .15s,background .15s;min-width:0}
 .opt>span:last-child{min-width:0;overflow-wrap:anywhere}
-.opt:hover:not(:disabled){border-color:var(--acc-2)}
+/* Наведение показываем только там, где есть настоящий курсор. На сенсорных
+   экранах :hover «залипает» после тапа, подсветка визуально переезжает на
+   следующий ответ — и кажется, что предыдущий выбор пропал. */
+@media (hover:hover){.opt:hover:not(:disabled){border-color:var(--acc-2)}}
 .opt .mk{width:21px;height:21px;flex:0 0 auto;border-radius:50%;border:2px solid var(--line-2);display:grid;place-items:center;font-size:11px;font-weight:700}
+/* Выбранный вариант держит подсветку, пока выбран именно он: ответ в одном
+   вопросе не гаснет, когда выбирают ответ в другом. Правила .correct и
+   .wrong ниже перекрывают её вердиктом проверки. */
+.opt.sel{border-color:var(--acc);background:rgba(255,106,26,.12);color:var(--txt)}
+.opt.sel .mk{background:var(--acc);border-color:var(--acc);color:#fff}
 .opt.correct{border-color:var(--ok);background:rgba(63,185,80,.1);color:var(--txt)}
 .opt.correct .mk{background:var(--ok);border-color:var(--ok);color:#0d1117}
 .opt.wrong{border-color:var(--err);background:rgba(248,81,73,.09);color:var(--txt)}

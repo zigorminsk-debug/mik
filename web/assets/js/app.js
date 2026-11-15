@@ -261,7 +261,13 @@
       });
       $('[data-quiz-reset]', q).addEventListener('click', () => {
         $$('.q', q).forEach((qq) => {
-          $$('.opt', qq).forEach((o) => { o.disabled = false; o.classList.remove('correct', 'wrong'); });
+          $$('.opt', qq).forEach((o) => {
+            o.disabled = false;
+            // выделение снимаем тоже: иначе старый выбор остаётся
+            // помеченным и засчитывается при следующей проверке
+            o.classList.remove('correct', 'wrong', 'sel');
+            o.setAttribute('aria-checked', 'false');
+          });
           const ex = $('.explain', qq); if (ex) { ex.hidden = true; ex.innerHTML = ''; }
         });
         if (out) out.textContent = '';

@@ -143,6 +143,30 @@ const quizOut2 = window.document.querySelector('[data-quiz-out]').textContent;
 check('Тест: неверные ответы дают 0', quizOut2.includes('Результат: 0/' + quizData.length), quizOut2.trim());
 check('Тест: неверный ответ помечен wrong', window.document.querySelectorAll('.quiz .opt.wrong').length === quizData.length);
 
+// 6c. выделение ответа не пропадает, когда отвечают на следующий вопрос
+window.document.querySelector('[data-quiz-reset]').dispatchEvent(new window.Event('click', { bubbles: true }));
+await wait(60);
+const qA = questions[0];
+const qB = questions[1];
+qA.querySelector('.opt[data-o="0"]').dispatchEvent(new window.Event('click', { bubbles: true }));
+qB.querySelector('.opt[data-o="1"]').dispatchEvent(new window.Event('click', { bubbles: true }));
+await wait(60);
+check('Тест: выделение ответа держится при ответе на другой вопрос',
+  qA.querySelectorAll('.opt.sel').length === 1 && qB.querySelectorAll('.opt.sel').length === 1,
+  'Q1=' + qA.querySelectorAll('.opt.sel').length + ', Q2=' + qB.querySelectorAll('.opt.sel').length);
+check('Тест: выбранный ответ помечен aria-checked',
+  qA.querySelector('.opt.sel') && qA.querySelector('.opt.sel').getAttribute('aria-checked') === 'true');
+
+// 6d. сброс снимает выделение выбранных ответов
+window.document.querySelector('[data-quiz-reset]').dispatchEvent(new window.Event('click', { bubbles: true }));
+await wait(60);
+check('Тест: сброс снимает выделение', window.document.querySelectorAll('.quiz .opt.sel').length === 0,
+  'осталось ' + window.document.querySelectorAll('.quiz .opt.sel').length);
+
+// 6e. выбранный ответ должен быть виден: для него есть отдельное правило стиля
+const cssSrc = fs.readFileSync(path.join(root, 'assets/css/app.css'), 'utf8');
+check('Стиль: выбранный ответ подсвечен', /\.opt\.sel\{/.test(cssSrc));
+
 // 7. копирование команды (кнопка есть)
 check('Кнопка копирования есть', window.document.querySelectorAll('[data-copy]').length >= 2);
 
